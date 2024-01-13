@@ -8,7 +8,8 @@ import (
 )
 
 type Mesh struct {
-	tris []Triangle
+	tris                         []Triangle
+	triangleAmount, vertexAmount int
 }
 
 func LoadMesh(filename string) Mesh {
@@ -51,6 +52,7 @@ func LoadMesh(filename string) Mesh {
 			}
 
 			vertices = append(vertices, vertice)
+			mesh.vertexAmount++
 		} else if parts[0] == "f" {
 			triangle := Triangle{}
 
@@ -66,8 +68,8 @@ func LoadMesh(filename string) Mesh {
 			}
 
 			mesh.tris = append(mesh.tris, triangle)
+			mesh.triangleAmount++
 		}
-
 	}
 
 	return mesh

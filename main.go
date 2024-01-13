@@ -108,6 +108,8 @@ func main() {
 		}
 		rl.DrawText(fmt.Sprintf("FPS: %d", rl.GetFPS()), int32(SCREEN_WIDTH)-120, 10, 22, fpsColor)
 
+		rl.DrawText(fmt.Sprintf("Model triangles: %d", modelMesh.triangleAmount), int32(SCREEN_WIDTH)-180, 30, 18, rl.RayWhite)
+		rl.DrawText(fmt.Sprintf("Model vertices: %d", modelMesh.vertexAmount), int32(SCREEN_WIDTH)-180, 50, 18, rl.RayWhite)
 		// Rotation, translation & world matrix
 		rotationMatrix := rotationMatrix(rotationTheta)
 		translationMatrix := MakeTranslation(positionOffset.x, positionOffset.y, positionOffset.z)
