@@ -22,11 +22,12 @@ func LoadMesh(filename string) Mesh {
 	mesh := Mesh{}
 	vertices := []Vector4{}
 	for _, line := range strings.Split(string(bytes), "\n") {
-		if line == "" {
+		cleanLine := strings.TrimSpace(line)
+		if cleanLine == "" {
 			continue
 		}
 
-		parts := strings.Fields(line)
+		parts := strings.Fields(cleanLine)
 
 		if parts[0] == "v" {
 			vertice := Vector4{0, 0, 0, 1}
@@ -54,7 +55,8 @@ func LoadMesh(filename string) Mesh {
 			triangle := Triangle{}
 
 			for i := 1; i < 4; i++ {
-				vIndex, err := strconv.Atoi(parts[i])
+				vIndexString := strings.Split(parts[i], "/")[0]
+				vIndex, err := strconv.Atoi(vIndexString)
 				if err != nil {
 					log.Fatalf("Error parsing the vertice index integer '%s'", parts[i])
 					return mesh
