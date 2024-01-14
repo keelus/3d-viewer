@@ -15,7 +15,7 @@ type Triangle struct {
 }
 
 const (
-	TRIANGLE_OUTLINE bool = true
+	TRIANGLE_OUTLINE bool = false
 	TRIANGLE_FILL    bool = true
 )
 
@@ -89,8 +89,8 @@ func (t Triangle) Draw() {
 
 		// Draw bottom triangle:
 		for y := y2; y <= y3; y++ {
-			xB := x3 - ((y3)-y)*(slopeB)
-			xC := x3 - ((y3)-y)*(slopeC)
+			xB := x3 - (y3-y)*slopeB
+			xC := x3 - (y3-y)*slopeC
 
 			zB := getZ(x1, y1, z1, x3, y3, z3, xB, y)
 			zC := getZ(x2, y2, z2, x3, y3, z3, xC, y)
@@ -107,8 +107,57 @@ func (t Triangle) Draw() {
 	}
 }
 
+// Bresenham algorithm
 func DrawLine(xf0, yf0, zf0, xf1, yf1, zf1 float32, c color.RGBA) {
-	// TODO
+	x0, y0, x1, y1 := int(xf0), int(yf0), int(xf1), int(yf1)
+
+	dy := y1 - y0
+	dx := x1 - x0
+
+	var stepx, stepy int
+
+	if dy < 0 {
+		dy = -dy
+		stepy = -1
+	} else {
+		stepy = 1
+	}
+
+	if dx < 0 {
+		dx = -dx
+		stepx = -1
+	} else {
+		stepx = 1
+	}
+
+	dy <<= 1
+	dx <<= 1
+
+	if dx > dy {
+		fraction := dy - (dx >> 1)
+		for x0 != x1 {
+			if fraction >= 0 {
+				y0 += stepy
+				fraction -= dx
+			}
+			x0 += stepx
+			fraction += dy
+			z0 := getZ(xf0, yf0, zf0, xf1, yf1, zf1, float32(x0), float32(y0))
+			PutPixel(x0, y0, z0, c)
+		}
+	} else {
+		fraction := dx - (dy >> 1)
+		for y0 != y1 {
+			if fraction >= 0 {
+				x0 += stepx
+				fraction -= dy
+			}
+			y0 += stepy
+			fraction += dx
+			z0 := getZ(xf0, yf0, zf0, xf1, yf1, zf1, float32(x0), float32(y0))
+			PutPixel(x0, y0, z0, c)
+		}
+	}
 }
 
 func PutPixel(x, y int, z float32, c color.RGBA) {

@@ -5,7 +5,9 @@ import (
 	"time"
 
 	math "github.com/chewxy/math32"
+	"github.com/ncruces/zenity"
 	"github.com/veandco/go-sdl2/sdl"
+	"github.com/veandco/go-sdl2/ttf"
 )
 
 const (
@@ -33,6 +35,10 @@ var (
 	T_DELTA float32 = 0
 )
 
+func getRect() *sdl.Surface {
+	return nil
+}
+
 func main() {
 	if err := sdl.Init(sdl.INIT_EVERYTHING); err != nil {
 		panic(err)
@@ -43,6 +49,25 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	if err = ttf.Init(); err != nil {
+		return
+	}
+	defer ttf.Quit()
+
+	// Load the font for our text
+	var font *ttf.Font
+	if font, err = ttf.OpenFont("font.ttf", 20); err != nil {
+		return
+	}
+	defer font.Close()
+
+	// Create a red text with the font
+	var text *sdl.Surface
+	if text, err = font.RenderUTF8Blended("Hello, World!", sdl.Color{R: 255, G: 0, B: 0, A: 255}); err != nil {
+		return
+	}
+	defer text.Free()
 
 	defer window.Destroy()
 
@@ -58,6 +83,8 @@ func main() {
 	// 		},
 	// 	},
 	// }
+
+	btnTest := NewButton(10, 10, 200, 40, 0xff0000ff, 0x00ff00ff)
 
 	positionOffset := Vector4{0, 0, DEFAULT_Z_OFFSET + 4, 0, -1}
 	rotationTheta := Vector4{0, 180, 0, 0, -1}
@@ -188,6 +215,18 @@ func main() {
 			rotationTheta = Vector4{0, 0, 0, 0, -1}
 		}
 
+		if btnTest.Hover(curX, curY) {
+			if MOUSE_CLICK {
+				selected, _ := zenity.SelectFile(
+					zenity.Filename("/"),
+					zenity.FileFilters{
+						{"OBJ files", []string{"*.obj"}, false},
+					})
+				modelMesh = LoadMesh(selected)
+				continue
+			}
+		}
+
 		// Rotation, translation & world matrix
 		rotationMatrix := rotationMatrix(rotationTheta)
 		translationMatrix := MakeTranslation(positionOffset.x, positionOffset.y, positionOffset.z)
@@ -301,6 +340,12 @@ func main() {
 				tri.Draw()
 			}
 		}
+
+		if err = text.Blit(nil, surface, &sdl.Rect{X: 400 - (text.W / 2), Y: 300 - (text.H / 2), W: 0, H: 0}); err != nil {
+			return
+		}
+
+		btnTest.Draw()
 
 		window.UpdateSurface()
 
