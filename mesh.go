@@ -31,7 +31,7 @@ func LoadMesh(filename string) Mesh {
 		parts := strings.Fields(cleanLine)
 
 		if parts[0] == "v" {
-			vertice := Vector4{0, 0, 0, 1}
+			vertice := Vector4{0, 0, 0, 1, -1}
 			for i := 1; i < 4; i++ {
 				num, err := strconv.ParseFloat(parts[i], 32)
 				if err != nil {
