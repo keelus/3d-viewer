@@ -30,6 +30,8 @@ const (
 )
 
 var (
+	modelMesh *Mesh
+
 	surface     *sdl.Surface
 	pixelBuffer []byte
 	depthBuffer []float32
@@ -37,6 +39,8 @@ var (
 	flipNormals bool
 
 	tDelta float32 = 0
+
+	positionOffset, rotationTheta Vector4
 )
 
 var (
@@ -133,19 +137,13 @@ func main() {
 	lblNoMeshLoaded = ui.NewLabel(int32(SCREEN_WIDTH)/2, int32(SCREEN_HEIGHT)/2, "Load a 3D file to preview it (.obj supported)", ui.NewMargin(0, 0), ui.CENTER_CENTER, sdl.Color{R: 127, G: 127, B: 127, A: 255}, fontBig)
 
 	// Initialize 3D and misc things
-	var modelMesh *Mesh
-
-	positionOffset := Vector4{0, DEFAULT_Y_OFFSET, DEFAULT_Z_OFFSET, 0, -1}
-	rotationTheta := Vector4{0, DEFAULT_Y_ROTATION, 0, 0, -1}
+	//LoadFile("Boat.obj")
 
 	camera := Vector4{0, 0, 0, 1, -1}
-
+	flipNormals = false
 	matProj := projectionMatrix(ASPECT_RATIO, FOV_DEGREES, NEAR_DISTANCE, FAR_DISTANCE)
 
 	lastFrame := time.Now()
-
-	flipNormals = false
-
 	curX, curY, _ := sdl.GetMouseState()
 
 	// Main loop
@@ -245,7 +243,7 @@ func main() {
 					},
 				})
 			if selected != "" {
-				modelMesh = LoadFile(selected)
+				LoadFile(selected)
 				continue
 			}
 		}
@@ -255,8 +253,7 @@ func main() {
 		}
 
 		if pressed := btnVisualToolsResetView.UpdateAndGetStatus(curX, curY, MOUSE_CLICK); pressed {
-			positionOffset = Vector4{0, DEFAULT_Y_OFFSET, DEFAULT_Z_OFFSET, 0, -1}
-			rotationTheta = Vector4{0, DEFAULT_Y_ROTATION, 0, 0, -1}
+			ResetCameraView()
 		}
 
 		// Main 3D code
@@ -398,18 +395,28 @@ func main() {
 	}
 }
 
-func LoadFile(filepath string) *Mesh {
-	mesh := LoadMesh(filepath)
+func LoadFile(filepath string) {
+	modelMesh = LoadMesh(filepath)
+
+	ResetCameraView()
 
 	filename := path.Base(filepath)
 
 	lblFileInfoName.SetText(filename)
-	lblFileInfoTriangles.SetText(fmt.Sprintf("Triangles: %d", mesh.triangleAmount))
-	lblFileInfoVertices.SetText(fmt.Sprintf("Vertices: %d", mesh.vertexAmount))
+	lblFileInfoTriangles.SetText(fmt.Sprintf("Triangles: %d", modelMesh.triangleAmount))
+	lblFileInfoVertices.SetText(fmt.Sprintf("Vertices: %d", modelMesh.vertexAmount))
 
 	width := math.Max(math.Max(float32(lblFileInfoName.GetRectWidth()), float32(lblFileInfoTriangles.GetRectWidth())), float32(lblFileInfoVertices.GetRectWidth()))
 
 	cbFileInfo.UpdateRectToWidth(int32(width))
+}
 
-	return &mesh
+func ResetCameraView() {
+	positionOffset = Vector4{0, DEFAULT_Y_OFFSET, DEFAULT_Z_OFFSET, 0, -1}
+	rotationTheta = Vector4{0, DEFAULT_Y_ROTATION, 0, 0, -1}
+
+	if modelMesh != nil {
+		positionOffset.z = -modelMesh.lowestZ * 3
+		positionOffset.y = -(modelMesh.lowestY + modelMesh.highestY) / 2
+	}
 }
