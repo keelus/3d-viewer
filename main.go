@@ -1,7 +1,9 @@
 package main
 
 import (
-	"log"
+	"fmt"
+	"ne3d/ui"
+	"path"
 	"time"
 
 	math "github.com/chewxy/math32"
@@ -17,8 +19,6 @@ const (
 
 	DEFAULT_Z_OFFSET float32 = 8
 
-	MODEL_FILENAME string = "sunflower.obj"
-
 	NEAR_DISTANCE float32 = 0.1
 	FAR_DISTANCE  float32 = 1000
 	FOV_DEGREES   float32 = 90
@@ -27,19 +27,32 @@ const (
 	POSITION_SPEED float32 = 10
 )
 
-var sur *sdl.Surface
+var surface *sdl.Surface
 var pixelBuffer []byte
-var zBuffer []float32
+var depthBuffer []float32
 
 var (
 	T_DELTA float32 = 0
 )
 
-func getRect() *sdl.Surface {
-	return nil
-}
+var (
+	fontRegular *ttf.Font
+	fontSmall   *ttf.Font
+
+	btnLoadMesh ui.Button
+	lblLoadMesh ui.Label
+
+	cbFileInfo           ui.ContentBlock
+	lblFileInfoName      ui.Label
+	lblFileInfoTriangles ui.Label
+	lblFileInfoVertices  ui.Label
+
+	cbFps  ui.ContentBlock
+	lblFps ui.Label
+)
 
 func main() {
+	// SDL and window setup
 	if err := sdl.Init(sdl.INIT_EVERYTHING); err != nil {
 		panic(err)
 	}
@@ -49,42 +62,43 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	defer window.Destroy()
 
+	// Window surface and depth buffer setup
+	surface, err = window.GetSurface()
+	if err != nil {
+		panic(err)
+	}
+
+	pixelBuffer = surface.Pixels()
+	depthBuffer = make([]float32, int(SCREEN_WIDTH)*int(SCREEN_HEIGHT))
+
+	// Load TTF module and load fonts
 	if err = ttf.Init(); err != nil {
 		return
 	}
 	defer ttf.Quit()
 
-	// Load the font for our text
-	var font *ttf.Font
-	if font, err = ttf.OpenFont("font.ttf", 20); err != nil {
-		return
-	}
-	defer font.Close()
+	fontRegular = ui.LoadFont("font.ttf", 17)
+	defer fontRegular.Close()
 
-	// Create a red text with the font
-	var text *sdl.Surface
-	if text, err = font.RenderUTF8Blended("Hello, World!", sdl.Color{R: 255, G: 0, B: 0, A: 255}); err != nil {
-		return
-	}
-	defer text.Free()
+	fontSmall = ui.LoadFont("font.ttf", 14)
+	defer fontSmall.Close()
 
-	defer window.Destroy()
+	// Load custom UI elements
+	btnLoadMesh := ui.NewButton(0, 0, 110, 40, ui.NewMargin(10, 10), ui.TOP_LEFT, 0x001a1a1a, 0x00202020)
+	lblLoadMesh := ui.NewLabel(0, 0, "Load file", ui.NewMargin(20, 20), ui.TOP_LEFT, sdl.Color{R: 255, G: 255, B: 255, A: 255}, fontRegular)
 
-	modelMesh := LoadMesh("mushroom.obj")
-	// modelMesh := Mesh{
-	// 	tris: []Triangle{
-	// 		{
-	// 			vecs: [3]Vector4{
-	// 				{0, 0, 10, 1, -1},
-	// 				{0, 0, 4, 1, -1},
-	// 				{0, 2, 4, 1, -1},
-	// 			},
-	// 		},
-	// 	},
-	// }
+	cbFileInfo = ui.NewContentBlock(1280, 0, 150, 50, ui.NewMargin(10, 10), ui.NewPadding(10, 10), ui.TOP_RIGHT, 0x001a1a1a)
+	lblFileInfoName = ui.NewLabel(1280, 5, " ", ui.NewMargin(20, 10), ui.TOP_RIGHT, sdl.Color{R: 255, G: 255, B: 255, A: 255}, fontRegular)
+	lblFileInfoTriangles = ui.NewLabel(1280, 30, " ", ui.NewMargin(20, 10), ui.TOP_RIGHT, sdl.Color{R: 255, G: 255, B: 255, A: 255}, fontSmall)
+	lblFileInfoVertices = ui.NewLabel(1280, 50, " ", ui.NewMargin(20, 10), ui.TOP_RIGHT, sdl.Color{R: 255, G: 255, B: 255, A: 255}, fontSmall)
 
-	btnTest := NewButton(10, 10, 200, 40, 0xff0000ff, 0x00ff00ff)
+	cbFps = ui.NewContentBlock(int32(SCREEN_WIDTH)/2, 0, 85, 20, ui.NewMargin(0, 10), ui.NewPadding(0, 0), ui.TOP_CENTER, 0x00000000)
+	lblFps = ui.NewLabel(int32(SCREEN_WIDTH)/2, 0, " ", ui.NewMargin(0, 10), ui.TOP_CENTER, sdl.Color{R: 255, G: 255, B: 255, A: 255}, fontSmall)
+
+	// Initialize 3D things
+	var modelMesh *Mesh
 
 	positionOffset := Vector4{0, 0, DEFAULT_Z_OFFSET + 4, 0, -1}
 	rotationTheta := Vector4{0, 180, 0, 0, -1}
@@ -93,23 +107,10 @@ func main() {
 
 	matProj := projectionMatrix(ASPECT_RATIO, FOV_DEGREES, NEAR_DISTANCE, FAR_DISTANCE)
 
-	surface, err := window.GetSurface()
-	if err != nil {
-		panic(err)
-	}
-
-	sur = surface
-
-	pixelBuffer = surface.Pixels()
-	zBuffer = make([]float32, int(SCREEN_WIDTH)*int(SCREEN_HEIGHT))
-
 	var theta float32 = 0
 	lastFrame := time.Now()
 
 	curX, curY, _ := sdl.GetMouseState()
-
-	lastFpsRecord := time.Now()
-	frames := 0
 
 	var CTRL_PRESSED = false
 	var UP_PRESSED = false
@@ -164,14 +165,8 @@ func main() {
 			}
 		}
 
-		frames++
-		if time.Now().Sub(lastFpsRecord).Milliseconds() > 1000 {
-			log.Printf("FPS: %d", frames)
-			frames = 0
-			lastFpsRecord = time.Now()
-		}
-
 		T_DELTA = float32(time.Now().Sub(lastFrame).Seconds())
+		lblFps.SetText(fmt.Sprintf("FPS: %d", int(1/T_DELTA)))
 		lastFrame = time.Now()
 
 		newX, newY, _ := sdl.GetMouseState()
@@ -215,137 +210,138 @@ func main() {
 			rotationTheta = Vector4{0, 0, 0, 0, -1}
 		}
 
-		if btnTest.Hover(curX, curY) {
+		if btnLoadMesh.Hover(curX, curY) {
 			if MOUSE_CLICK {
 				selected, _ := zenity.SelectFile(
 					zenity.Filename("/"),
 					zenity.FileFilters{
-						{"OBJ files", []string{"*.obj"}, false},
+						{
+							Name:     "OBJ files",
+							Patterns: []string{"*.obj"},
+							CaseFold: false,
+						},
 					})
-				modelMesh = LoadMesh(selected)
-				continue
-			}
-		}
-
-		// Rotation, translation & world matrix
-		rotationMatrix := rotationMatrix(rotationTheta)
-		translationMatrix := MakeTranslation(positionOffset.x, positionOffset.y, positionOffset.z)
-		worldMatrix := rotationMatrix.multiplyMatrix(translationMatrix)
-
-		triangles := []Triangle{}
-		// Evaluate each triangle and save them if the normals face the camera. Handle clipping triangles.
-		for _, tri := range modelMesh.tris {
-			triTransformed := worldMatrix.multiplyTriangle(tri)
-			triTransformed.vecs[0].originalZ = triTransformed.vecs[0].z
-			triTransformed.vecs[1].originalZ = triTransformed.vecs[1].z
-			triTransformed.vecs[2].originalZ = triTransformed.vecs[2].z
-
-			// Calculate the normal of the triangle face
-			line1 := triTransformed.vecs[1].Sub(triTransformed.vecs[0])
-			line2 := triTransformed.vecs[2].Sub(triTransformed.vecs[0])
-			normal := line1.CrossProduct(line2).Normalise()
-
-			cameraRay := triTransformed.vecs[0].Sub(camera)
-
-			if normal.Dot(cameraRay) < 0 {
-				// Simple illumination via light direction
-				lightDirection := Vector4{0, 1, -1, 1, -1}.Normalise()
-				ilumination := math.Max(0.1, lightDirection.Dot(normal))
-
-				// Transform and project triangles
-				clipped := ClipAgainstPlane(Vector4{0, 0, 0.1, 1, -1}, Vector4{0, 0, 1, 1, -1}, triTransformed)
-				for n := 0; n < len(clipped); n++ {
-					// Project triangles to 2D
-					triProjected := matProj.multiplyTriangle(clipped[n])
-					triProjected.ilum = ilumination
-
-					// Apply depth
-					triProjected.vecs[0] = triProjected.vecs[0].Div(triProjected.vecs[0].w)
-					triProjected.vecs[1] = triProjected.vecs[1].Div(triProjected.vecs[1].w)
-					triProjected.vecs[2] = triProjected.vecs[2].Div(triProjected.vecs[2].w)
-
-					// Offset into view
-					vOffsetView := Vector4{1, 1, 0, 0, -1}
-					triProjected.vecs[0] = triProjected.vecs[0].Add(vOffsetView)
-					triProjected.vecs[1] = triProjected.vecs[1].Add(vOffsetView)
-					triProjected.vecs[2] = triProjected.vecs[2].Add(vOffsetView)
-
-					triProjected.vecs[0].originalZ = triTransformed.vecs[0].originalZ
-					triProjected.vecs[1].originalZ = triTransformed.vecs[1].originalZ
-					triProjected.vecs[2].originalZ = triTransformed.vecs[2].originalZ
-
-					// Expand to screen size
-					triProjected.vecs[0].x *= 0.5 * SCREEN_WIDTH
-					triProjected.vecs[0].y *= 0.5 * SCREEN_HEIGHT
-					triProjected.vecs[1].x *= 0.5 * SCREEN_WIDTH
-					triProjected.vecs[1].y *= 0.5 * SCREEN_HEIGHT
-					triProjected.vecs[2].x *= 0.5 * SCREEN_WIDTH
-					triProjected.vecs[2].y *= 0.5 * SCREEN_HEIGHT
-
-					triangles = append(triangles, triProjected)
+				if selected != "" {
+					modelMesh = LoadFile(selected)
+					continue
 				}
 			}
 		}
 
-		// Sort by Z depth. Far triangles are drawn first.
-		// slices.SortFunc(triangles, func(t1, t2 Triangle) int {
-		// 	z1 := (t1.vecs[0].z + t1.vecs[1].z + t1.vecs[2].z) / 3
-		// 	z2 := (t2.vecs[0].z + t2.vecs[1].z + t2.vecs[2].z) / 3
+		if modelMesh != nil {
+			// Rotation, translation & world matrix
+			rotationMatrix := rotationMatrix(rotationTheta)
+			translationMatrix := MakeTranslation(positionOffset.x, positionOffset.y, positionOffset.z)
+			worldMatrix := rotationMatrix.multiplyMatrix(translationMatrix)
 
-		// 	if z1 > z2 {
-		// 		return 1
-		// 	} else if z1 < z2 {
-		// 		return -1
-		// 	} else {
-		// 		return 0
-		// 	}
-		// })
+			triangles := []Triangle{}
+			// Evaluate each triangle and save them if the normals face the camera. Handle clipping triangles.
+			for _, tri := range modelMesh.tris {
+				triTransformed := worldMatrix.multiplyTriangle(tri)
+				triTransformed.vecs[0].originalZ = triTransformed.vecs[0].z
+				triTransformed.vecs[1].originalZ = triTransformed.vecs[1].z
+				triTransformed.vecs[2].originalZ = triTransformed.vecs[2].z
 
-		// Check for clipping and draw triangles to screen.
-		for _, triToRaster := range triangles {
-			clipped := []Triangle{}
-			listTriangles := []Triangle{}
-			listTriangles = append(listTriangles, triToRaster)
-			nNewTriangles := 1
+				// Calculate the normal of the triangle face
+				line1 := triTransformed.vecs[1].Sub(triTransformed.vecs[0])
+				line2 := triTransformed.vecs[2].Sub(triTransformed.vecs[0])
+				normal := line1.CrossProduct(line2).Normalise()
 
-			for p := 0; p < 4; p++ {
-				nTrisToAdd := 0
-				for nNewTriangles > 0 {
-					test := listTriangles[0]
-					listTriangles = listTriangles[1:]
-					nNewTriangles--
+				cameraRay := triTransformed.vecs[0].Sub(camera)
 
-					// Clip against each plane (screen borders)
-					switch p {
-					case 0:
-						clipped = ClipAgainstPlane(Vector4{0, 0, 0, 1, -1}, Vector4{0, 1, 0, 1, -1}, test)
-					case 1:
-						clipped = ClipAgainstPlane(Vector4{0, SCREEN_HEIGHT, 0, 1, -1}, Vector4{0, -1, 0, 1, -1}, test)
-					case 2:
-						clipped = ClipAgainstPlane(Vector4{0, 0, 0, 1, -1}, Vector4{1, 0, 0, 1, -1}, test)
-					case 3:
-						clipped = ClipAgainstPlane(Vector4{SCREEN_WIDTH, 0, 0, 1, -1}, Vector4{-1, 0, 0, 1, -1}, test)
-					}
+				if normal.Dot(cameraRay) < 0 {
+					// Simple illumination via light direction
+					lightDirection := Vector4{0, 1, -1, 1, -1}.Normalise()
+					ilumination := math.Max(0.1, lightDirection.Dot(normal))
 
-					nTrisToAdd = len(clipped)
-					for w := 0; w < nTrisToAdd; w++ {
-						listTriangles = append(listTriangles, clipped[w])
+					// Transform and project triangles
+					clipped := ClipAgainstPlane(Vector4{0, 0, 0.1, 1, -1}, Vector4{0, 0, 1, 1, -1}, triTransformed)
+					for n := 0; n < len(clipped); n++ {
+						// Project triangles to 2D
+						triProjected := matProj.multiplyTriangle(clipped[n])
+						triProjected.ilum = ilumination
+
+						// Apply depth
+						triProjected.vecs[0] = triProjected.vecs[0].Div(triProjected.vecs[0].w)
+						triProjected.vecs[1] = triProjected.vecs[1].Div(triProjected.vecs[1].w)
+						triProjected.vecs[2] = triProjected.vecs[2].Div(triProjected.vecs[2].w)
+
+						// Offset into view
+						vOffsetView := Vector4{1, 1, 0, 0, -1}
+						triProjected.vecs[0] = triProjected.vecs[0].Add(vOffsetView)
+						triProjected.vecs[1] = triProjected.vecs[1].Add(vOffsetView)
+						triProjected.vecs[2] = triProjected.vecs[2].Add(vOffsetView)
+
+						triProjected.vecs[0].originalZ = triTransformed.vecs[0].originalZ
+						triProjected.vecs[1].originalZ = triTransformed.vecs[1].originalZ
+						triProjected.vecs[2].originalZ = triTransformed.vecs[2].originalZ
+
+						// Expand to screen size
+						triProjected.vecs[0].x *= 0.5 * SCREEN_WIDTH
+						triProjected.vecs[0].y *= 0.5 * SCREEN_HEIGHT
+						triProjected.vecs[1].x *= 0.5 * SCREEN_WIDTH
+						triProjected.vecs[1].y *= 0.5 * SCREEN_HEIGHT
+						triProjected.vecs[2].x *= 0.5 * SCREEN_WIDTH
+						triProjected.vecs[2].y *= 0.5 * SCREEN_HEIGHT
+
+						triangles = append(triangles, triProjected)
 					}
 				}
-
-				nNewTriangles = len(listTriangles)
 			}
 
-			for _, tri := range listTriangles {
-				tri.Draw()
+			// Check for clipping and draw triangles to screen.
+			for _, triToRaster := range triangles {
+				clipped := []Triangle{}
+				listTriangles := []Triangle{}
+				listTriangles = append(listTriangles, triToRaster)
+				nNewTriangles := 1
+
+				for p := 0; p < 4; p++ {
+					nTrisToAdd := 0
+					for nNewTriangles > 0 {
+						test := listTriangles[0]
+						listTriangles = listTriangles[1:]
+						nNewTriangles--
+
+						// Clip against each plane (screen borders)
+						switch p {
+						case 0:
+							clipped = ClipAgainstPlane(Vector4{0, 0, 0, 1, -1}, Vector4{0, 1, 0, 1, -1}, test)
+						case 1:
+							clipped = ClipAgainstPlane(Vector4{0, SCREEN_HEIGHT, 0, 1, -1}, Vector4{0, -1, 0, 1, -1}, test)
+						case 2:
+							clipped = ClipAgainstPlane(Vector4{0, 0, 0, 1, -1}, Vector4{1, 0, 0, 1, -1}, test)
+						case 3:
+							clipped = ClipAgainstPlane(Vector4{SCREEN_WIDTH, 0, 0, 1, -1}, Vector4{-1, 0, 0, 1, -1}, test)
+						}
+
+						nTrisToAdd = len(clipped)
+						for w := 0; w < nTrisToAdd; w++ {
+							listTriangles = append(listTriangles, clipped[w])
+						}
+					}
+
+					nNewTriangles = len(listTriangles)
+				}
+
+				for _, tri := range listTriangles {
+					tri.Draw()
+				}
 			}
 		}
 
-		if err = text.Blit(nil, surface, &sdl.Rect{X: 400 - (text.W / 2), Y: 300 - (text.H / 2), W: 0, H: 0}); err != nil {
-			return
+		btnLoadMesh.Draw(surface)
+		lblLoadMesh.Draw(surface)
+
+		if modelMesh != nil {
+			cbFileInfo.Draw(surface)
+			lblFileInfoName.Draw(surface)
+			lblFileInfoTriangles.Draw(surface)
+			lblFileInfoVertices.Draw(surface)
 		}
 
-		btnTest.Draw()
+		cbFps.Draw(surface)
+		lblFps.Draw(surface)
 
 		window.UpdateSurface()
 
@@ -353,11 +349,27 @@ func main() {
 			pixelBuffer[i] = 0x00
 		}
 
-		for i := 0; i < len(zBuffer); i++ {
-			zBuffer[i] = math.MaxFloat32
+		for i := 0; i < len(depthBuffer); i++ {
+			depthBuffer[i] = math.MaxFloat32
 		}
 
 		theta += 1 * T_DELTA
 		_ = theta
 	}
+}
+
+func LoadFile(filepath string) *Mesh {
+	mesh := LoadMesh(filepath)
+
+	filename := path.Base(filepath)
+
+	lblFileInfoName.SetText(filename)
+	lblFileInfoTriangles.SetText(fmt.Sprintf("Triangles: %d", mesh.triangleAmount))
+	lblFileInfoVertices.SetText(fmt.Sprintf("Vertices: %d", mesh.vertexAmount))
+
+	width := math.Max(math.Max(float32(lblFileInfoName.GetRectWidth()), float32(lblFileInfoTriangles.GetRectWidth())), float32(lblFileInfoVertices.GetRectWidth()))
+
+	cbFileInfo.UpdateRectToWidth(int32(width))
+
+	return &mesh
 }

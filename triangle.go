@@ -163,8 +163,8 @@ func DrawLine(xf0, yf0, zf0, xf1, yf1, zf1 float32, c color.RGBA) {
 func PutPixel(x, y int, z float32, c color.RGBA) {
 	zIdx := y*int(SCREEN_WIDTH) + x
 
-	if zIdx >= 0 && zIdx < len(zBuffer) {
-		if z < zBuffer[zIdx] {
+	if zIdx >= 0 && zIdx < len(depthBuffer) {
+		if z < depthBuffer[zIdx] {
 			idx := 4 * (y*int(SCREEN_WIDTH) + x)
 			//col := colorFromZ(z)
 			col := c
@@ -173,7 +173,7 @@ func PutPixel(x, y int, z float32, c color.RGBA) {
 			writePixel(idx+2, col.R) // R
 			writePixel(idx+3, 255)   // A
 
-			zBuffer[zIdx] = z
+			depthBuffer[zIdx] = z
 		}
 	}
 }
