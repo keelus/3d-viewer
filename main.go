@@ -30,6 +30,7 @@ const (
 )
 
 var (
+	bricks    Texture
 	modelMesh *Mesh
 
 	surface     *sdl.Surface
@@ -79,6 +80,7 @@ var (
 )
 
 func main() {
+	bricks = LoadTexture("./bricks.png")
 	// SDL and window setup
 	if err := sdl.Init(sdl.INIT_EVERYTHING); err != nil {
 		panic(err)
@@ -137,9 +139,9 @@ func main() {
 	lblNoMeshLoaded = ui.NewLabel(int32(SCREEN_WIDTH)/2, int32(SCREEN_HEIGHT)/2, "Load a 3D file to preview it (.obj supported)", ui.NewMargin(0, 0), ui.CENTER_CENTER, sdl.Color{R: 127, G: 127, B: 127, A: 255}, fontBig)
 
 	// Initialize 3D and misc things
-	//LoadFile("Boat.obj")
+	LoadFile("Boat.obj")
 
-	camera := Vector4{0, 0, 0, 1, -1}
+	camera := Vector4{0, 0, 0, 1, -1, 0, 0}
 	flipNormals = false
 	matProj := projectionMatrix(ASPECT_RATIO, FOV_DEGREES, NEAR_DISTANCE, FAR_DISTANCE)
 
@@ -280,11 +282,11 @@ func main() {
 
 				if (normal.Dot(cameraRay) < 0 && !flipNormals) || (normal.Dot(cameraRay) > 0 && flipNormals) {
 					// Simple illumination via light direction
-					lightDirection := Vector4{0, 1, -1, 1, -1}.Normalise()
+					lightDirection := Vector4{0, 1, -1, 1, -1, 0, 0}.Normalise()
 					ilumination := math.Max(0.1, lightDirection.Dot(normal))
 
 					// Transform and project triangles
-					clipped := ClipAgainstPlane(Vector4{0, 0, 0.1, 1, -1}, Vector4{0, 0, 1, 1, -1}, triTransformed)
+					clipped := ClipAgainstPlane(Vector4{0, 0, 0.1, 1, -1, 0, 0}, Vector4{0, 0, 1, 1, -1, 0, 0}, triTransformed)
 					for n := 0; n < len(clipped); n++ {
 						// Project triangles to 2D
 						triProjected := matProj.multiplyTriangle(clipped[n])
@@ -296,7 +298,7 @@ func main() {
 						triProjected.vecs[2] = triProjected.vecs[2].Div(triProjected.vecs[2].w)
 
 						// Offset into view
-						vOffsetView := Vector4{1, 1, 0, 0, -1}
+						vOffsetView := Vector4{1, 1, 0, 0, -1, 0, 0}
 						triProjected.vecs[0] = triProjected.vecs[0].Add(vOffsetView)
 						triProjected.vecs[1] = triProjected.vecs[1].Add(vOffsetView)
 						triProjected.vecs[2] = triProjected.vecs[2].Add(vOffsetView)
@@ -335,13 +337,13 @@ func main() {
 						// Clip against each plane (screen borders)
 						switch p {
 						case 0:
-							clipped = ClipAgainstPlane(Vector4{0, 0, 0, 1, -1}, Vector4{0, 1, 0, 1, -1}, test)
+							clipped = ClipAgainstPlane(Vector4{0, 0, 0, 1, -1, 0, 0}, Vector4{0, 1, 0, 1, -1, 0, 0}, test)
 						case 1:
-							clipped = ClipAgainstPlane(Vector4{0, SCREEN_HEIGHT, 0, 1, -1}, Vector4{0, -1, 0, 1, -1}, test)
+							clipped = ClipAgainstPlane(Vector4{0, SCREEN_HEIGHT, 0, 1, -1, 0, 0}, Vector4{0, -1, 0, 1, -1, 0, 0}, test)
 						case 2:
-							clipped = ClipAgainstPlane(Vector4{0, 0, 0, 1, -1}, Vector4{1, 0, 0, 1, -1}, test)
+							clipped = ClipAgainstPlane(Vector4{0, 0, 0, 1, -1, 0, 0}, Vector4{1, 0, 0, 1, -1, 0, 0}, test)
 						case 3:
-							clipped = ClipAgainstPlane(Vector4{SCREEN_WIDTH, 0, 0, 1, -1}, Vector4{-1, 0, 0, 1, -1}, test)
+							clipped = ClipAgainstPlane(Vector4{SCREEN_WIDTH, 0, 0, 1, -1, 0, 0}, Vector4{-1, 0, 0, 1, -1, 0, 0}, test)
 						}
 
 						nTrisToAdd = len(clipped)
@@ -393,12 +395,112 @@ func main() {
 			depthBuffer[i] = math.MaxFloat32
 		}
 	}
+
 }
 
 func LoadFile(filepath string) {
-	modelMesh = LoadMesh(filepath)
+	//modelMesh = LoadMesh(filepath)
+	modelMesh = &Mesh{
+		tris: []Triangle{
+			{
+				vecs: [3]Vector4{
+					{0, 1, 0, 1, 0, 0, 1},
+					{1, 1, 0, 1, 0, 1, 1},
+					{1, 0, 0, 1, 0, 1, 0},
+				},
+			},
+			{
+				vecs: [3]Vector4{
+					{0, 1, 0, 1, 0, 0, 1},
+					{1, 0, 0, 1, 0, 1, 0},
+					{0, 0, 0, 1, 0, 0, 0},
+				},
+			},
+			{
+				vecs: [3]Vector4{
+					{1, 1, 1, 1, 0, 0, 1},
+					{0, 1, 1, 1, 0, 1, 1},
+					{0, 0, 1, 1, 0, 1, 0},
+				},
+			},
+			{
+				vecs: [3]Vector4{
+					{1, 1, 1, 1, 0, 0, 1},
+					{0, 0, 1, 1, 0, 1, 0},
+					{1, 0, 1, 1, 0, 0, 0},
+				},
+			},
+			// Top face
+			{
+				vecs: [3]Vector4{
+					{0, 1, 1, 1, 0, 0, 1},
+					{1, 1, 1, 1, 0, 1, 1},
+					{1, 1, 0, 1, 0, 1, 0},
+				},
+			},
+			{
+				vecs: [3]Vector4{
+					{0, 1, 1, 1, 0, 0, 1},
+					{1, 1, 0, 1, 0, 1, 0},
+					{0, 1, 0, 1, 0, 0, 0},
+				},
+			},
+
+			// Bottom face
+			{
+				vecs: [3]Vector4{
+					{0, 0, 0, 1, 0, 0, 1},
+					{1, 0, 0, 1, 0, 1, 1},
+					{1, 0, 1, 1, 0, 1, 0},
+				},
+			},
+			{
+				vecs: [3]Vector4{
+					{0, 0, 0, 1, 0, 0, 1},
+					{1, 0, 1, 1, 0, 1, 0},
+					{0, 0, 1, 1, 0, 0, 0},
+				},
+			},
+
+			// Left face
+			{
+				vecs: [3]Vector4{
+					{0, 1, 1, 1, 0, 0, 1},
+					{0, 1, 0, 1, 0, 1, 1},
+					{0, 0, 0, 1, 0, 1, 0},
+				},
+			},
+			{
+				vecs: [3]Vector4{
+					{0, 1, 1, 1, 0, 0, 1},
+					{0, 0, 0, 1, 0, 1, 0},
+					{0, 0, 1, 1, 0, 0, 0},
+				},
+			},
+
+			// Right face
+			{
+				vecs: [3]Vector4{
+					{1, 1, 0, 1, 0, 0, 1},
+					{1, 1, 1, 1, 0, 1, 1},
+					{1, 0, 1, 1, 0, 1, 0},
+				},
+			},
+			{
+				vecs: [3]Vector4{
+					{1, 1, 0, 1, 0, 0, 1},
+					{1, 0, 1, 1, 0, 1, 0},
+					{1, 0, 0, 1, 0, 0, 0},
+				},
+			},
+		},
+	}
 
 	ResetCameraView()
+
+	positionOffset.x = 0
+	positionOffset.y = 0
+	positionOffset.z = 2.532563
 
 	filename := path.Base(filepath)
 
@@ -412,8 +514,8 @@ func LoadFile(filepath string) {
 }
 
 func ResetCameraView() {
-	positionOffset = Vector4{0, DEFAULT_Y_OFFSET, DEFAULT_Z_OFFSET, 0, -1}
-	rotationTheta = Vector4{0, DEFAULT_Y_ROTATION, 0, 0, -1}
+	positionOffset = Vector4{0, DEFAULT_Y_OFFSET, DEFAULT_Z_OFFSET, 0, -1, 0, 0}
+	rotationTheta = Vector4{0, DEFAULT_Y_ROTATION, 0, 0, -1, 0, 0}
 
 	if modelMesh != nil {
 		positionOffset.z = -modelMesh.lowestZ * 3
