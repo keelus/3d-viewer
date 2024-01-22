@@ -10,7 +10,16 @@ import (
 	"github.com/ncruces/zenity"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
+
+	"net/http"
+	_ "net/http/pprof"
 )
+
+func init() {
+	go func() {
+		fmt.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
+}
 
 const (
 	SCREEN_WIDTH  float32 = 1280
@@ -411,7 +420,7 @@ func main() {
 }
 
 func LoadFile(filepath string) {
-	modelMesh = LoadMesh(filepath)
+	modelMesh = ParseObj(filepath)
 
 	ResetCameraView()
 
