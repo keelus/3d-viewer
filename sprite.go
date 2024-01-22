@@ -16,21 +16,11 @@ type Texture struct {
 }
 
 func (t *Texture) GetColorAt(u, v float32) color.RGBA {
-	x := int(math.Round((t.w - 1) * u))
-	y := int((t.h - 1) - math.Round((t.h-1)*v))
+	finalU := u - math.Floor(u)
+	finalV := v - math.Floor(v)
+	x := int(math.Round((t.w - 1) * finalU))
+	y := int((t.h - 1) - math.Round((t.h-1)*finalV))
 
-	if x < 0 {
-		x = 0
-	}
-	if y < 0 {
-		y = 0
-	}
-	if x > int(t.w-1) {
-		x = int(t.w - 1)
-	}
-	if y > int(t.h-1) {
-		y = int(t.h - 1)
-	}
 	return t.data[y][x]
 }
 

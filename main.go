@@ -27,6 +27,8 @@ const (
 
 	ROTATION_SPEED float32 = 2
 	POSITION_SPEED float32 = 10
+
+	BG_COLOR uint32 = 0xff202020 // 0xAABBGGRR
 )
 
 var (
@@ -153,7 +155,7 @@ func main() {
 	// Initialize 3D and misc things
 	LoadFile("Boat.obj")
 
-	camera := Vector4{0, 0, 0, 1, -1, 0, 0, 0}
+	camera := Vector4{0, 0, 0, 1, -1, NewTexVector(0, 0, 0)}
 	flipNormals = false
 	matProj := projectionMatrix(ASPECT_RATIO, FOV_DEGREES, NEAR_DISTANCE, FAR_DISTANCE)
 
@@ -294,11 +296,11 @@ func main() {
 
 				if (normal.Dot(cameraRay) < 0 && !flipNormals) || (normal.Dot(cameraRay) > 0 && flipNormals) {
 					// Simple illumination via light direction
-					lightDirection := Vector4{0, 1, -1, 1, -1, 0, 0, 0}.Normalise()
+					lightDirection := Vector4{0, 1, -1, 1, -1, NewTexVector(0, 0, 0)}.Normalise()
 					ilumination := math.Max(0.1, lightDirection.Dot(normal))
 
 					// Transform and project triangles
-					clipped := ClipAgainstPlane(Vector4{0, 0, 0.1, 1, -1, 0, 0, 0}, Vector4{0, 0, 1, 1, -1, 0, 0, 0}, triTransformed)
+					clipped := ClipAgainstPlane(Vector4{0, 0, 0.1, 1, -1, NewTexVector(0, 0, 0)}, Vector4{0, 0, 1, 1, -1, NewTexVector(0, 0, 0)}, triTransformed)
 					for n := 0; n < len(clipped); n++ {
 						// Project triangles to 2D
 						triProjected := matProj.multiplyTriangle(clipped[n])
@@ -306,22 +308,22 @@ func main() {
 						triProjected.tex = tri.tex
 
 						// Apply depth
-						triProjected.vecs[0].u /= triProjected.vecs[0].w
-						triProjected.vecs[1].u /= triProjected.vecs[1].w
-						triProjected.vecs[2].u /= triProjected.vecs[2].w
-						triProjected.vecs[0].v /= triProjected.vecs[0].w
-						triProjected.vecs[1].v /= triProjected.vecs[1].w
-						triProjected.vecs[2].v /= triProjected.vecs[2].w
-						triProjected.vecs[0].wt = 1 / triProjected.vecs[0].w
-						triProjected.vecs[1].wt = 1 / triProjected.vecs[1].w
-						triProjected.vecs[2].wt = 1 / triProjected.vecs[2].w
+						triProjected.vecs[0].texVec.u /= triProjected.vecs[0].w
+						triProjected.vecs[1].texVec.u /= triProjected.vecs[1].w
+						triProjected.vecs[2].texVec.u /= triProjected.vecs[2].w
+						triProjected.vecs[0].texVec.v /= triProjected.vecs[0].w
+						triProjected.vecs[1].texVec.v /= triProjected.vecs[1].w
+						triProjected.vecs[2].texVec.v /= triProjected.vecs[2].w
+						triProjected.vecs[0].texVec.w = 1 / triProjected.vecs[0].w
+						triProjected.vecs[1].texVec.w = 1 / triProjected.vecs[1].w
+						triProjected.vecs[2].texVec.w = 1 / triProjected.vecs[2].w
 
 						triProjected.vecs[0] = triProjected.vecs[0].Div(triProjected.vecs[0].w)
 						triProjected.vecs[1] = triProjected.vecs[1].Div(triProjected.vecs[1].w)
 						triProjected.vecs[2] = triProjected.vecs[2].Div(triProjected.vecs[2].w)
 
 						// Offset into view
-						vOffsetView := Vector4{1, 1, 0, 0, -1, 0, 0, 0}
+						vOffsetView := Vector4{1, 1, 0, 0, -1, NewTexVector(0, 0, 0)}
 						triProjected.vecs[0] = triProjected.vecs[0].Add(vOffsetView)
 						triProjected.vecs[1] = triProjected.vecs[1].Add(vOffsetView)
 						triProjected.vecs[2] = triProjected.vecs[2].Add(vOffsetView)
@@ -360,13 +362,13 @@ func main() {
 						// Clip against each plane (screen borders)
 						switch p {
 						case 0:
-							clipped = ClipAgainstPlane(Vector4{0, 0, 0, 1, -1, 0, 0, 0}, Vector4{0, 1, 0, 1, -1, 0, 0, 0}, test)
+							clipped = ClipAgainstPlane(Vector4{0, 0, 0, 1, -1, NewTexVector(0, 0, 0)}, Vector4{0, 1, 0, 1, -1, NewTexVector(0, 0, 0)}, test)
 						case 1:
-							clipped = ClipAgainstPlane(Vector4{0, SCREEN_HEIGHT, 0, 1, -1, 0, 0, 0}, Vector4{0, -1, 0, 1, -1, 0, 0, 0}, test)
+							clipped = ClipAgainstPlane(Vector4{0, SCREEN_HEIGHT, 0, 1, -1, NewTexVector(0, 0, 0)}, Vector4{0, -1, 0, 1, -1, NewTexVector(0, 0, 0)}, test)
 						case 2:
-							clipped = ClipAgainstPlane(Vector4{0, 0, 0, 1, -1, 0, 0, 0}, Vector4{1, 0, 0, 1, -1, 0, 0, 0}, test)
+							clipped = ClipAgainstPlane(Vector4{0, 0, 0, 1, -1, NewTexVector(0, 0, 0)}, Vector4{1, 0, 0, 1, -1, NewTexVector(0, 0, 0)}, test)
 						case 3:
-							clipped = ClipAgainstPlane(Vector4{SCREEN_WIDTH, 0, 0, 1, -1, 0, 0, 0}, Vector4{-1, 0, 0, 1, -1, 0, 0, 0}, test)
+							clipped = ClipAgainstPlane(Vector4{SCREEN_WIDTH, 0, 0, 1, -1, NewTexVector(0, 0, 0)}, Vector4{-1, 0, 0, 1, -1, NewTexVector(0, 0, 0)}, test)
 						}
 
 						nTrisToAdd = len(clipped)
@@ -410,8 +412,11 @@ func main() {
 		// Update and clean screen buffers
 		window.UpdateSurface()
 
-		for i := 0; i < len(pixelBuffer); i++ {
-			pixelBuffer[i] = 0x00
+		for i := 0; i < len(pixelBuffer); i += 4 {
+			pixelBuffer[i] = byte((BG_COLOR >> 16) & 0xff)
+			pixelBuffer[i+1] = byte((BG_COLOR >> 8) & 0xff)
+			pixelBuffer[i+2] = byte(BG_COLOR & 0xff)
+			pixelBuffer[i+3] = byte((BG_COLOR >> 24) & 0xff)
 		}
 
 		for i := 0; i < len(depthBuffer); i++ {
@@ -427,50 +432,50 @@ func LoadFile(filepath string) {
 		tris: []Triangle{
 			{
 				vecs: [3]Vector4{
-					{0, 1, 0, 1, 0, 0, 1, 0},
-					{1, 1, 0, 1, 0, 1, 1, 0},
-					{1, 0, 0, 1, 0, 1, 0, 0},
+					{0, 1, 0, 1, 0, NewTexVector(0, 1, 0)},
+					{1, 1, 0, 1, 0, NewTexVector(1, 1, 0)},
+					{1, 0, 0, 1, 0, NewTexVector(1, 0, 0)},
 				},
 				tex: texBack,
 			},
 			{
 				vecs: [3]Vector4{
-					{0, 1, 0, 1, 0, 0, 1, 0},
-					{1, 0, 0, 1, 0, 1, 0, 0},
-					{0, 0, 0, 1, 0, 0, 0, 0},
+					{0, 1, 0, 1, 0, NewTexVector(0, 1, 0)},
+					{1, 0, 0, 1, 0, NewTexVector(1, 0, 0)},
+					{0, 0, 0, 1, 0, NewTexVector(0, 0, 0)},
 				},
 				tex: texBack,
 			},
 			{
 				vecs: [3]Vector4{
-					{1, 1, 1, 1, 0, 0, 1, 0},
-					{0, 1, 1, 1, 0, 1, 1, 0},
-					{0, 0, 1, 1, 0, 1, 0, 0},
+					{1, 1, 1, 1, 0, NewTexVector(0, 1, 0)},
+					{0, 1, 1, 1, 0, NewTexVector(1, 1, 0)},
+					{0, 0, 1, 1, 0, NewTexVector(1, 0, 0)},
 				},
 				tex: texFront,
 			},
 			{
 				vecs: [3]Vector4{
-					{1, 1, 1, 1, 0, 0, 1, 0},
-					{0, 0, 1, 1, 0, 1, 0, 0},
-					{1, 0, 1, 1, 0, 0, 0, 0},
+					{1, 1, 1, 1, 0, NewTexVector(0, 1, 0)},
+					{0, 0, 1, 1, 0, NewTexVector(1, 0, 0)},
+					{1, 0, 1, 1, 0, NewTexVector(0, 0, 0)},
 				},
 				tex: texFront,
 			},
 			// Top face
 			{
 				vecs: [3]Vector4{
-					{0, 1, 1, 1, 0, 0, 1, 0},
-					{1, 1, 1, 1, 0, 1, 1, 0},
-					{1, 1, 0, 1, 0, 1, 0, 0},
+					{0, 1, 1, 1, 0, NewTexVector(0, 1, 0)},
+					{1, 1, 1, 1, 0, NewTexVector(1, 1, 0)},
+					{1, 1, 0, 1, 0, NewTexVector(1, 0, 0)},
 				},
 				tex: texTop,
 			},
 			{
 				vecs: [3]Vector4{
-					{0, 1, 1, 1, 0, 0, 1, 0},
-					{1, 1, 0, 1, 0, 1, 0, 0},
-					{0, 1, 0, 1, 0, 0, 0, 0},
+					{0, 1, 1, 1, 0, NewTexVector(0, 1, 0)},
+					{1, 1, 0, 1, 0, NewTexVector(1, 0, 0)},
+					{0, 1, 0, 1, 0, NewTexVector(0, 0, 0)},
 				},
 				tex: texTop,
 			},
@@ -478,17 +483,17 @@ func LoadFile(filepath string) {
 			// Bottom face
 			{
 				vecs: [3]Vector4{
-					{0, 0, 0, 1, 0, 0, 1, 0},
-					{1, 0, 0, 1, 0, 1, 1, 0},
-					{1, 0, 1, 1, 0, 1, 0, 0},
+					{0, 0, 0, 1, 0, NewTexVector(0, 1, 0)},
+					{1, 0, 0, 1, 0, NewTexVector(1, 1, 0)},
+					{1, 0, 1, 1, 0, NewTexVector(1, 0, 0)},
 				},
 				tex: texBottom,
 			},
 			{
 				vecs: [3]Vector4{
-					{0, 0, 0, 1, 0, 0, 1, 0},
-					{1, 0, 1, 1, 0, 1, 0, 0},
-					{0, 0, 1, 1, 0, 0, 0, 0},
+					{0, 0, 0, 1, 0, NewTexVector(0, 1, 0)},
+					{1, 0, 1, 1, 0, NewTexVector(1, 0, 0)},
+					{0, 0, 1, 1, 0, NewTexVector(0, 0, 0)},
 				},
 				tex: texBottom,
 			},
@@ -496,17 +501,17 @@ func LoadFile(filepath string) {
 			// Left face
 			{
 				vecs: [3]Vector4{
-					{0, 1, 1, 1, 0, 0, 1, 0},
-					{0, 1, 0, 1, 0, 1, 1, 0},
-					{0, 0, 0, 1, 0, 1, 0, 0},
+					{0, 1, 1, 1, 0, NewTexVector(0, 1, 0)},
+					{0, 1, 0, 1, 0, NewTexVector(1, 1, 0)},
+					{0, 0, 0, 1, 0, NewTexVector(1, 0, 0)},
 				},
 				tex: texLeft,
 			},
 			{
 				vecs: [3]Vector4{
-					{0, 1, 1, 1, 0, 0, 1, 0},
-					{0, 0, 0, 1, 0, 1, 0, 0},
-					{0, 0, 1, 1, 0, 0, 0, 0},
+					{0, 1, 1, 1, 0, NewTexVector(0, 1, 0)},
+					{0, 0, 0, 1, 0, NewTexVector(1, 0, 0)},
+					{0, 0, 1, 1, 0, NewTexVector(0, 0, 0)},
 				},
 				tex: texLeft,
 			},
@@ -514,22 +519,24 @@ func LoadFile(filepath string) {
 			// Right face
 			{
 				vecs: [3]Vector4{
-					{1, 1, 0, 1, 0, 0, 1, 0},
-					{1, 1, 1, 1, 0, 1, 1, 0},
-					{1, 0, 1, 1, 0, 1, 0, 0},
+					{1, 1, 0, 1, 0, NewTexVector(0, 1, 0)},
+					{1, 1, 1, 1, 0, NewTexVector(1, 1, 0)},
+					{1, 0, 1, 1, 0, NewTexVector(1, 0, 0)},
 				},
 				tex: texRight,
 			},
 			{
 				vecs: [3]Vector4{
-					{1, 1, 0, 1, 0, 0, 1, 0},
-					{1, 0, 1, 1, 0, 1, 0, 0},
-					{1, 0, 0, 1, 0, 0, 0, 0},
+					{1, 1, 0, 1, 0, NewTexVector(0, 1, 0)},
+					{1, 0, 1, 1, 0, NewTexVector(1, 0, 0)},
+					{1, 0, 0, 1, 0, NewTexVector(0, 0, 0)},
 				},
 				tex: texRight,
 			},
 		},
 	}
+
+	modelMesh = LoadMesh("./chomp/ChainChomp.obj")
 
 	ResetCameraView()
 
@@ -549,8 +556,8 @@ func LoadFile(filepath string) {
 }
 
 func ResetCameraView() {
-	positionOffset = Vector4{0, DEFAULT_Y_OFFSET, DEFAULT_Z_OFFSET, 0, -1, 0, 0, 0}
-	rotationTheta = Vector4{0, DEFAULT_Y_ROTATION, 0, 0, -1, 0, 0, 0}
+	positionOffset = Vector4{0, DEFAULT_Y_OFFSET, DEFAULT_Z_OFFSET, 0, -1, NewTexVector(0, 0, 0)}
+	rotationTheta = Vector4{0, DEFAULT_Y_ROTATION, 0, 0, -1, NewTexVector(0, 0, 0)}
 
 	if modelMesh != nil {
 		positionOffset.z = -modelMesh.lowestZ * 3

@@ -4,10 +4,19 @@ import (
 	math "github.com/chewxy/math32"
 )
 
+type TexVector struct {
+	u, v, w float32
+}
+
+func NewTexVector(u, v, w float32) TexVector {
+	return TexVector{u, v, w}
+}
+
 type Vector4 struct {
 	x, y, z, w float32
 	originalZ  float32
-	u, v, wt   float32
+
+	texVec TexVector
 }
 
 func (v1 Vector4) Add(v2 Vector4) Vector4 {
@@ -17,9 +26,11 @@ func (v1 Vector4) Add(v2 Vector4) Vector4 {
 		v1.z + v2.z,
 		1,
 		v1.originalZ + v2.originalZ,
-		v1.u + v2.u,
-		v1.v + v2.v,
-		v1.wt + v2.wt,
+		NewTexVector(
+			v1.texVec.u+v2.texVec.v,
+			v1.texVec.v+v2.texVec.v,
+			v1.texVec.w+v2.texVec.w,
+		),
 	}
 }
 
@@ -30,9 +41,11 @@ func (v1 Vector4) Sub(v2 Vector4) Vector4 {
 		v1.z - v2.z,
 		1,
 		v1.originalZ - v2.originalZ,
-		v1.u - v2.u,
-		v1.v - v2.v,
-		v1.wt - v2.wt,
+		NewTexVector(
+			v1.texVec.u-v2.texVec.v,
+			v1.texVec.v-v2.texVec.v,
+			v1.texVec.w-v2.texVec.w,
+		),
 	}
 }
 
@@ -43,9 +56,11 @@ func (v Vector4) Mul(k float32) Vector4 {
 		v.z * k,
 		1,
 		v.originalZ * k,
-		v.u,
-		v.v,
-		v.wt,
+		NewTexVector(
+			v.texVec.u,
+			v.texVec.v,
+			v.texVec.w,
+		),
 	}
 }
 
@@ -56,9 +71,11 @@ func (v Vector4) Div(k float32) Vector4 {
 		v.z / k,
 		1,
 		v.originalZ / k,
-		v.u,
-		v.v,
-		v.wt,
+		NewTexVector(
+			v.texVec.u,
+			v.texVec.v,
+			v.texVec.w,
+		),
 	}
 }
 
@@ -78,9 +95,11 @@ func (v Vector4) Normalise() Vector4 {
 		v.z / l,
 		1,
 		v.originalZ,
-		v.u,
-		v.v,
-		v.wt,
+		NewTexVector(
+			v.texVec.u,
+			v.texVec.v,
+			v.texVec.w,
+		),
 	}
 }
 
@@ -91,9 +110,11 @@ func (v1 Vector4) CrossProduct(v2 Vector4) Vector4 {
 		v1.x*v2.y - v1.y*v2.x,
 		1,
 		v1.originalZ,
-		v1.u,
-		v1.v,
-		v1.wt,
+		NewTexVector(
+			v1.texVec.u,
+			v1.texVec.v,
+			v1.texVec.w,
+		),
 	}
 }
 

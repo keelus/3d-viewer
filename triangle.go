@@ -53,7 +53,11 @@ func (t Triangle) Draw() {
 			TRIANGLE_FILL_COLOR.A,
 		}
 
-		FillTriangle(t.vecs[2], t.vecs[1], t.vecs[0], c, t.tex)
+		if flipNormals {
+			FillTriangle(t.vecs[0], t.vecs[1], t.vecs[2], c, t.tex)
+		} else {
+			FillTriangle(t.vecs[2], t.vecs[1], t.vecs[0], c, t.tex)
+		}
 
 	}
 
@@ -66,7 +70,10 @@ func PutPixel(x, y int, z float32, u, v float32, tex *Texture) {
 		if z < depthBuffer[zIdx] {
 			idx := 4 * (y*int(SCREEN_WIDTH) + x)
 			//col := colorFromZ(z)
-			c := tex.GetColorAt(u, v)
+			c := color.RGBA{255, 0, 255, 255}
+			if tex != nil {
+				c = tex.GetColorAt(u, v)
+			}
 			writePixel(idx+0, c.B) // B
 			writePixel(idx+1, c.G) // G
 			writePixel(idx+2, c.R) // R
@@ -90,8 +97,6 @@ func colorFromZ(z float32) color.RGBA {
 		val = 359
 	}
 
-	//log.Print(val)
-
 	r, g, b, err := colorconv.HSLToRGB(float64(val), 1, 0.5)
 	if err != nil {
 		log.Print(err)
@@ -106,7 +111,7 @@ func colorFromZ(z float32) color.RGBA {
 }
 
 func DrawPoint(v Vector4, c color.RGBA, tex *Texture) {
-	PutPixel(int(v.x), int(v.y), v.originalZ, v.u, v.v, tex)
+	PutPixel(int(v.x), int(v.y), v.originalZ, v.texVec.u, v.texVec.v, tex)
 }
 
 func GetSlope(vA, vB Vector4) float32 {
@@ -114,8 +119,8 @@ func GetSlope(vA, vB Vector4) float32 {
 }
 
 func edge_cross(a, b, p Vector4) float32 {
-	ab := Vector4{b.x - a.x, b.y - a.y, 0, 0, 0, 0, 0, 0}
-	ap := Vector4{p.x - a.x, p.y - a.y, 0, 0, 0, 0, 0, 0}
+	ab := Vector4{b.x - a.x, b.y - a.y, 0, 0, 0, NewTexVector(0, 0, 0)}
+	ap := Vector4{p.x - a.x, p.y - a.y, 0, 0, 0, NewTexVector(0, 0, 0)}
 	return ab.x*ap.y - ab.y*ap.x
 }
 
@@ -129,7 +134,7 @@ func FillTriangle(v0, v1, v2 Vector4, c color.RGBA, tex *Texture) {
 
 	for y := yMin; y <= yMax; y++ {
 		for x := xMin; x <= xMax; x++ {
-			p := Vector4{x, y, 0, 0, 0, 0, 0, 0}
+			p := Vector4{x, y, 0, 0, 0, NewTexVector(0, 0, 0)}
 
 			w0 := edge_cross(v1, v2, p)
 			w1 := edge_cross(v2, v0, p)
@@ -140,12 +145,13 @@ func FillTriangle(v0, v1, v2 Vector4, c color.RGBA, tex *Texture) {
 			gamma := w2 / area
 
 			p.z = alpha*v0.z + beta*v1.z + gamma*v2.z
-			p.u = math.Abs(alpha*v0.u + beta*v1.u + gamma*v2.u)
-			p.v = math.Abs(alpha*v0.v + beta*v1.v + gamma*v2.v)
-			p.wt = math.Abs(alpha*v0.wt + beta*v1.wt + gamma*v2.wt)
+			p.texVec.u = math.Abs(alpha*v0.texVec.u + beta*v1.texVec.u + gamma*v2.texVec.u)
+			p.texVec.v = math.Abs(alpha*v0.texVec.v + beta*v1.texVec.v + gamma*v2.texVec.v)
+			p.texVec.w = math.Abs(alpha*v0.texVec.w + beta*v1.texVec.w + gamma*v2.texVec.w)
+			p.originalZ = math.Abs(alpha*v0.originalZ + beta*v1.originalZ + gamma*v2.originalZ)
 
-			p.u /= p.wt
-			p.v /= p.wt
+			p.texVec.u /= p.texVec.w
+			p.texVec.v /= p.texVec.w
 
 			isInside := w0 >= 0 && w1 >= 0 && w2 >= 0
 
