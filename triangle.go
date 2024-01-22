@@ -43,20 +43,11 @@ func getZ(x1, y1, z1, x2, y2, z2, x, y float32) float32 {
 }
 
 func (t Triangle) Draw() {
-	var c color.RGBA
-	var ilum float32 = 0.3 + (1-0.3)*((t.ilum-0)/(1-0))
 	if TRIANGLE_FILL {
-		c = color.RGBA{
-			uint8(float32(TRIANGLE_FILL_COLOR.R) * ilum),
-			uint8(float32(TRIANGLE_FILL_COLOR.G) * ilum),
-			uint8(float32(TRIANGLE_FILL_COLOR.B) * ilum),
-			TRIANGLE_FILL_COLOR.A,
-		}
-
 		if flipNormals {
-			FillTriangle(t.vecs[0], t.vecs[1], t.vecs[2], c, t.tex)
+			FillTriangle(&t.vecs[0], &t.vecs[1], &t.vecs[2], t.tex)
 		} else {
-			FillTriangle(t.vecs[2], t.vecs[1], t.vecs[0], c, t.tex)
+			FillTriangle(&t.vecs[2], &t.vecs[1], &t.vecs[0], t.tex)
 		}
 
 	}
@@ -69,7 +60,6 @@ func PutPixel(x, y int, z float32, u, v float32, tex *Texture) {
 	if zIdx >= 0 && zIdx < len(depthBuffer) {
 		if z < depthBuffer[zIdx] {
 			idx := 4 * (y*int(SCREEN_WIDTH) + x)
-			//col := colorFromZ(z)
 			c := color.RGBA{255, 0, 255, 255}
 			if tex != nil {
 				c = tex.GetColorAt(u, v)
@@ -77,7 +67,7 @@ func PutPixel(x, y int, z float32, u, v float32, tex *Texture) {
 			writePixel(idx+0, c.B) // B
 			writePixel(idx+1, c.G) // G
 			writePixel(idx+2, c.R) // R
-			writePixel(idx+3, 255) // A
+			writePixel(idx+3, c.A) // A
 
 			depthBuffer[zIdx] = z
 		}
@@ -110,7 +100,7 @@ func colorFromZ(z float32) color.RGBA {
 	}
 }
 
-func DrawPoint(v Vector4, c color.RGBA, tex *Texture) {
+func DrawPoint(v *Vector4, tex *Texture) {
 	PutPixel(int(v.x), int(v.y), v.originalZ, v.texVec.u, v.texVec.v, tex)
 }
 
@@ -118,37 +108,35 @@ func GetSlope(vA, vB Vector4) float32 {
 	return (vB.x - vA.x) / (vB.y - vA.y)
 }
 
-func edge_cross(a, b, p Vector4) float32 {
-	ab := Vector4{b.x - a.x, b.y - a.y, 0, 0, 0, NewTexVector(0, 0, 0)}
-	ap := Vector4{p.x - a.x, p.y - a.y, 0, 0, 0, NewTexVector(0, 0, 0)}
-	return ab.x*ap.y - ab.y*ap.x
+func EdgeCross(a, b, p *Vector4) float32 {
+	return (b.x-a.x)*(p.y-a.y) - (b.y-a.y)*(p.x-a.x)
 }
 
-func FillTriangle(v0, v1, v2 Vector4, c color.RGBA, tex *Texture) {
+func FillTriangle(v0, v1, v2 *Vector4, tex *Texture) {
 	xMin := math.Min(math.Min(v0.x, v1.x), v2.x)
 	yMin := math.Min(math.Min(v0.y, v1.y), v2.y)
 	xMax := math.Max(math.Max(v0.x, v1.x), v2.x)
 	yMax := math.Max(math.Max(v0.y, v1.y), v2.y)
 
-	area := edge_cross(v0, v1, v2)
+	area := EdgeCross(v0, v1, v2)
 
 	for y := yMin; y <= yMax; y++ {
 		for x := xMin; x <= xMax; x++ {
-			p := Vector4{x, y, 0, 0, 0, NewTexVector(0, 0, 0)}
+			p := &Vector4{x, y, 0, 0, 0, NewTexVector(0, 0, 0)}
 
-			w0 := edge_cross(v1, v2, p)
-			w1 := edge_cross(v2, v0, p)
-			w2 := edge_cross(v0, v1, p)
+			w0 := EdgeCross(v1, v2, p)
+			w1 := EdgeCross(v2, v0, p)
+			w2 := EdgeCross(v0, v1, p)
 
 			alpha := w0 / area
 			beta := w1 / area
 			gamma := w2 / area
 
 			p.z = alpha*v0.z + beta*v1.z + gamma*v2.z
-			p.texVec.u = math.Abs(alpha*v0.texVec.u + beta*v1.texVec.u + gamma*v2.texVec.u)
-			p.texVec.v = math.Abs(alpha*v0.texVec.v + beta*v1.texVec.v + gamma*v2.texVec.v)
-			p.texVec.w = math.Abs(alpha*v0.texVec.w + beta*v1.texVec.w + gamma*v2.texVec.w)
-			p.originalZ = math.Abs(alpha*v0.originalZ + beta*v1.originalZ + gamma*v2.originalZ)
+			p.texVec.u = alpha*v0.texVec.u + beta*v1.texVec.u + gamma*v2.texVec.u
+			p.texVec.v = alpha*v0.texVec.v + beta*v1.texVec.v + gamma*v2.texVec.v
+			p.texVec.w = alpha*v0.texVec.w + beta*v1.texVec.w + gamma*v2.texVec.w
+			p.originalZ = alpha*v0.originalZ + beta*v1.originalZ + gamma*v2.originalZ
 
 			p.texVec.u /= p.texVec.w
 			p.texVec.v /= p.texVec.w
@@ -156,7 +144,7 @@ func FillTriangle(v0, v1, v2 Vector4, c color.RGBA, tex *Texture) {
 			isInside := w0 >= 0 && w1 >= 0 && w2 >= 0
 
 			if isInside {
-				DrawPoint(p, c, tex)
+				DrawPoint(p, tex)
 			}
 		}
 	}
