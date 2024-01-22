@@ -11,6 +11,7 @@ import (
 type Triangle struct {
 	vecs [3]Vector4
 	ilum float32
+	tex  *Texture
 }
 
 const (
@@ -52,20 +53,20 @@ func (t Triangle) Draw() {
 			TRIANGLE_FILL_COLOR.A,
 		}
 
-		FillTriangle(t.vecs[2], t.vecs[1], t.vecs[0], c)
+		FillTriangle(t.vecs[2], t.vecs[1], t.vecs[0], c, t.tex)
 
 	}
 
 }
 
-func PutPixel(x, y int, z float32, u, v float32) {
+func PutPixel(x, y int, z float32, u, v float32, tex *Texture) {
 	zIdx := y*int(SCREEN_WIDTH) + x
 
 	if zIdx >= 0 && zIdx < len(depthBuffer) {
 		if z < depthBuffer[zIdx] {
 			idx := 4 * (y*int(SCREEN_WIDTH) + x)
 			//col := colorFromZ(z)
-			c := bricks.GetColorAt(u, v)
+			c := tex.GetColorAt(u, v)
 			writePixel(idx+0, c.B) // B
 			writePixel(idx+1, c.G) // G
 			writePixel(idx+2, c.R) // R
@@ -104,8 +105,8 @@ func colorFromZ(z float32) color.RGBA {
 	}
 }
 
-func DrawPoint(v Vector4, c color.RGBA) {
-	PutPixel(int(v.x), int(v.y), v.originalZ, v.u, v.v)
+func DrawPoint(v Vector4, c color.RGBA, tex *Texture) {
+	PutPixel(int(v.x), int(v.y), v.originalZ, v.u, v.v, tex)
 }
 
 func GetSlope(vA, vB Vector4) float32 {
@@ -113,12 +114,12 @@ func GetSlope(vA, vB Vector4) float32 {
 }
 
 func edge_cross(a, b, p Vector4) float32 {
-	ab := Vector4{b.x - a.x, b.y - a.y, 0, 0, 0, 0, 0}
-	ap := Vector4{p.x - a.x, p.y - a.y, 0, 0, 0, 0, 0}
+	ab := Vector4{b.x - a.x, b.y - a.y, 0, 0, 0, 0, 0, 0}
+	ap := Vector4{p.x - a.x, p.y - a.y, 0, 0, 0, 0, 0, 0}
 	return ab.x*ap.y - ab.y*ap.x
 }
 
-func FillTriangle(v0, v1, v2 Vector4, c color.RGBA) {
+func FillTriangle(v0, v1, v2 Vector4, c color.RGBA, tex *Texture) {
 	xMin := math.Min(math.Min(v0.x, v1.x), v2.x)
 	yMin := math.Min(math.Min(v0.y, v1.y), v2.y)
 	xMax := math.Max(math.Max(v0.x, v1.x), v2.x)
@@ -128,7 +129,7 @@ func FillTriangle(v0, v1, v2 Vector4, c color.RGBA) {
 
 	for y := yMin; y <= yMax; y++ {
 		for x := xMin; x <= xMax; x++ {
-			p := Vector4{x, y, 0, 0, 0, 0, 0}
+			p := Vector4{x, y, 0, 0, 0, 0, 0, 0}
 
 			w0 := edge_cross(v1, v2, p)
 			w1 := edge_cross(v2, v0, p)
@@ -141,11 +142,15 @@ func FillTriangle(v0, v1, v2 Vector4, c color.RGBA) {
 			p.z = alpha*v0.z + beta*v1.z + gamma*v2.z
 			p.u = math.Abs(alpha*v0.u + beta*v1.u + gamma*v2.u)
 			p.v = math.Abs(alpha*v0.v + beta*v1.v + gamma*v2.v)
+			p.wt = math.Abs(alpha*v0.wt + beta*v1.wt + gamma*v2.wt)
+
+			p.u /= p.wt
+			p.v /= p.wt
 
 			isInside := w0 >= 0 && w1 >= 0 && w2 >= 0
 
 			if isInside {
-				DrawPoint(p, c)
+				DrawPoint(p, c, tex)
 			}
 		}
 	}

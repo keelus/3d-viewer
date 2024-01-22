@@ -15,7 +15,7 @@ type Texture struct {
 	data [][]color.RGBA
 }
 
-func (t Texture) GetColorAt(u, v float32) color.RGBA {
+func (t *Texture) GetColorAt(u, v float32) color.RGBA {
 	x := int(math.Round((t.w - 1) * u))
 	y := int((t.h - 1) - math.Round((t.h-1)*v))
 
@@ -34,7 +34,7 @@ func (t Texture) GetColorAt(u, v float32) color.RGBA {
 	return t.data[y][x]
 }
 
-func LoadTexture(filename string) Texture {
+func LoadTexture(filename string) *Texture {
 	image.RegisterFormat("png", "png", png.Decode, png.DecodeConfig)
 
 	file, err := os.Open(filename)
@@ -73,5 +73,5 @@ func LoadTexture(filename string) Texture {
 		texture.data = append(texture.data, row)
 	}
 
-	return texture
+	return &texture
 }

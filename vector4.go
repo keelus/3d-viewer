@@ -7,7 +7,7 @@ import (
 type Vector4 struct {
 	x, y, z, w float32
 	originalZ  float32
-	u, v       float32
+	u, v, wt   float32
 }
 
 func (v1 Vector4) Add(v2 Vector4) Vector4 {
@@ -19,6 +19,7 @@ func (v1 Vector4) Add(v2 Vector4) Vector4 {
 		v1.originalZ + v2.originalZ,
 		v1.u + v2.u,
 		v1.v + v2.v,
+		v1.wt + v2.wt,
 	}
 }
 
@@ -31,6 +32,7 @@ func (v1 Vector4) Sub(v2 Vector4) Vector4 {
 		v1.originalZ - v2.originalZ,
 		v1.u - v2.u,
 		v1.v - v2.v,
+		v1.wt - v2.wt,
 	}
 }
 
@@ -43,6 +45,7 @@ func (v Vector4) Mul(k float32) Vector4 {
 		v.originalZ * k,
 		v.u,
 		v.v,
+		v.wt,
 	}
 }
 
@@ -55,6 +58,7 @@ func (v Vector4) Div(k float32) Vector4 {
 		v.originalZ / k,
 		v.u,
 		v.v,
+		v.wt,
 	}
 }
 
@@ -76,6 +80,7 @@ func (v Vector4) Normalise() Vector4 {
 		v.originalZ,
 		v.u,
 		v.v,
+		v.wt,
 	}
 }
 
@@ -88,6 +93,7 @@ func (v1 Vector4) CrossProduct(v2 Vector4) Vector4 {
 		v1.originalZ,
 		v1.u,
 		v1.v,
+		v1.wt,
 	}
 }
 
@@ -146,6 +152,7 @@ func ClipAgainstPlane(plane_p, plane_n Vector4, in_tri Triangle) []Triangle {
 				IntersectPlane(plane_p, planeN, insidePoints[0], outsidePoints[1]),
 			},
 			ilum: in_tri.ilum,
+			tex:  in_tri.tex,
 		}
 
 		return []Triangle{outTri}
@@ -160,6 +167,7 @@ func ClipAgainstPlane(plane_p, plane_n Vector4, in_tri Triangle) []Triangle {
 				IntersectPlane(plane_p, planeN, insidePoints[0], outsidePoints[0]),
 			},
 			ilum: in_tri.ilum,
+			tex:  in_tri.tex,
 		}
 		outTri2 := Triangle{
 			vecs: [3]Vector4{
@@ -168,6 +176,7 @@ func ClipAgainstPlane(plane_p, plane_n Vector4, in_tri Triangle) []Triangle {
 				IntersectPlane(plane_p, planeN, insidePoints[1], outsidePoints[0]),
 			},
 			ilum: in_tri.ilum,
+			tex:  in_tri.tex,
 		}
 
 		return []Triangle{outTri1, outTri2}
