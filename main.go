@@ -32,13 +32,6 @@ const (
 )
 
 var (
-	texFront  *Texture
-	texBack   *Texture
-	texLeft   *Texture
-	texRight  *Texture
-	texTop    *Texture
-	texBottom *Texture
-
 	modelMesh *Mesh
 
 	surface     *sdl.Surface
@@ -88,13 +81,6 @@ var (
 )
 
 func main() {
-	texFront = LoadTexture("front.png")
-	texBack = LoadTexture("back.png")
-	texLeft = LoadTexture("left.png")
-	texRight = LoadTexture("right.png")
-	texTop = LoadTexture("top.png")
-	texBottom = LoadTexture("bottom.png")
-
 	// SDL and window setup
 	if err := sdl.Init(sdl.INIT_EVERYTHING); err != nil {
 		panic(err)
@@ -153,8 +139,6 @@ func main() {
 	lblNoMeshLoaded = ui.NewLabel(int32(SCREEN_WIDTH)/2, int32(SCREEN_HEIGHT)/2, "Load a 3D file to preview it (.obj supported)", ui.NewMargin(0, 0), ui.CENTER_CENTER, sdl.Color{R: 127, G: 127, B: 127, A: 255}, fontBig)
 
 	// Initialize 3D and misc things
-	LoadFile("Boat.obj")
-
 	camera := Vector4{0, 0, 0, 1, -1, NewTexVector(0, 0, 0)}
 	flipNormals = false
 	matProj := projectionMatrix(ASPECT_RATIO, FOV_DEGREES, NEAR_DISTANCE, FAR_DISTANCE)
@@ -427,116 +411,7 @@ func main() {
 }
 
 func LoadFile(filepath string) {
-	//modelMesh = LoadMesh(filepath)
-	modelMesh = &Mesh{
-		tris: []Triangle{
-			{
-				vecs: [3]Vector4{
-					{0, 1, 0, 1, 0, NewTexVector(0, 1, 0)},
-					{1, 1, 0, 1, 0, NewTexVector(1, 1, 0)},
-					{1, 0, 0, 1, 0, NewTexVector(1, 0, 0)},
-				},
-				tex: texBack,
-			},
-			{
-				vecs: [3]Vector4{
-					{0, 1, 0, 1, 0, NewTexVector(0, 1, 0)},
-					{1, 0, 0, 1, 0, NewTexVector(1, 0, 0)},
-					{0, 0, 0, 1, 0, NewTexVector(0, 0, 0)},
-				},
-				tex: texBack,
-			},
-			{
-				vecs: [3]Vector4{
-					{1, 1, 1, 1, 0, NewTexVector(0, 1, 0)},
-					{0, 1, 1, 1, 0, NewTexVector(1, 1, 0)},
-					{0, 0, 1, 1, 0, NewTexVector(1, 0, 0)},
-				},
-				tex: texFront,
-			},
-			{
-				vecs: [3]Vector4{
-					{1, 1, 1, 1, 0, NewTexVector(0, 1, 0)},
-					{0, 0, 1, 1, 0, NewTexVector(1, 0, 0)},
-					{1, 0, 1, 1, 0, NewTexVector(0, 0, 0)},
-				},
-				tex: texFront,
-			},
-			// Top face
-			{
-				vecs: [3]Vector4{
-					{0, 1, 1, 1, 0, NewTexVector(0, 1, 0)},
-					{1, 1, 1, 1, 0, NewTexVector(1, 1, 0)},
-					{1, 1, 0, 1, 0, NewTexVector(1, 0, 0)},
-				},
-				tex: texTop,
-			},
-			{
-				vecs: [3]Vector4{
-					{0, 1, 1, 1, 0, NewTexVector(0, 1, 0)},
-					{1, 1, 0, 1, 0, NewTexVector(1, 0, 0)},
-					{0, 1, 0, 1, 0, NewTexVector(0, 0, 0)},
-				},
-				tex: texTop,
-			},
-
-			// Bottom face
-			{
-				vecs: [3]Vector4{
-					{0, 0, 0, 1, 0, NewTexVector(0, 1, 0)},
-					{1, 0, 0, 1, 0, NewTexVector(1, 1, 0)},
-					{1, 0, 1, 1, 0, NewTexVector(1, 0, 0)},
-				},
-				tex: texBottom,
-			},
-			{
-				vecs: [3]Vector4{
-					{0, 0, 0, 1, 0, NewTexVector(0, 1, 0)},
-					{1, 0, 1, 1, 0, NewTexVector(1, 0, 0)},
-					{0, 0, 1, 1, 0, NewTexVector(0, 0, 0)},
-				},
-				tex: texBottom,
-			},
-
-			// Left face
-			{
-				vecs: [3]Vector4{
-					{0, 1, 1, 1, 0, NewTexVector(0, 1, 0)},
-					{0, 1, 0, 1, 0, NewTexVector(1, 1, 0)},
-					{0, 0, 0, 1, 0, NewTexVector(1, 0, 0)},
-				},
-				tex: texLeft,
-			},
-			{
-				vecs: [3]Vector4{
-					{0, 1, 1, 1, 0, NewTexVector(0, 1, 0)},
-					{0, 0, 0, 1, 0, NewTexVector(1, 0, 0)},
-					{0, 0, 1, 1, 0, NewTexVector(0, 0, 0)},
-				},
-				tex: texLeft,
-			},
-
-			// Right face
-			{
-				vecs: [3]Vector4{
-					{1, 1, 0, 1, 0, NewTexVector(0, 1, 0)},
-					{1, 1, 1, 1, 0, NewTexVector(1, 1, 0)},
-					{1, 0, 1, 1, 0, NewTexVector(1, 0, 0)},
-				},
-				tex: texRight,
-			},
-			{
-				vecs: [3]Vector4{
-					{1, 1, 0, 1, 0, NewTexVector(0, 1, 0)},
-					{1, 0, 1, 1, 0, NewTexVector(1, 0, 0)},
-					{1, 0, 0, 1, 0, NewTexVector(0, 0, 0)},
-				},
-				tex: texRight,
-			},
-		},
-	}
-
-	modelMesh = LoadMesh("./chomp/ChainChomp.obj")
+	modelMesh = LoadMesh(filepath)
 
 	ResetCameraView()
 
