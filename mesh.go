@@ -169,8 +169,15 @@ func LoadMesh(filename string) *Mesh {
 			triangle := Triangle{}
 
 			for i := 1; i < 4; i++ {
+				vParts := strings.Split(parts[i], "/")
 				vIndexString := strings.Split(parts[i], "/")[0]
-				vTexIndexString := strings.Split(parts[i], "/")[1]
+				var vTexIndexString string // TODO: Handle non textured
+				if len(vParts) == 2 {
+					vTexIndexString = strings.Split(parts[i], "/")[1]
+				} else if len(vParts) == 3 {
+					vTexIndexString = strings.Split(parts[i], "/")[2]
+				}
+
 				vIndex, err := strconv.Atoi(vIndexString)
 				if err != nil {
 					log.Fatalf("Error parsing the vertice index integer '%s'", parts[i])
