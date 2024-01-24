@@ -44,12 +44,8 @@ func getZ(x1, y1, z1, x2, y2, z2, x, y float32) float32 {
 
 func (t Triangle) Draw() {
 	if TRIANGLE_FILL {
-		if flipNormals {
-			FillTriangle(&t.vecs[0], &t.vecs[1], &t.vecs[2], t.tex)
-		} else {
-			FillTriangle(&t.vecs[2], &t.vecs[1], &t.vecs[0], t.tex)
-		}
-
+		FillTriangle(&t.vecs[0], &t.vecs[1], &t.vecs[2], t.tex)
+		FillTriangle(&t.vecs[2], &t.vecs[1], &t.vecs[0], t.tex)
 	}
 
 }
