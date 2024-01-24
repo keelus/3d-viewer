@@ -164,13 +164,30 @@ func ClipAgainstPlane(plane_p, plane_n Vector4, in_tri Triangle) []Triangle {
 		return []Triangle{in_tri}
 	}
 
+	v0 := &in_tri.vecs[0]
+	v1 := &in_tri.vecs[1]
+	v2 := &in_tri.vecs[2]
+
+	area := EdgeCross(v0, v1, v2)
+
+	updateVector := func(v *Vector4) {
+		_, alpha, beta, gamma := BaycentricPointInTriangle(area, v0, v1, v2, v)
+		InterpolateVectors(alpha, beta, gamma, v0, v1, v2, v)
+	}
+
 	// Two points of the triangle are outside of view. Clip it into a new triangle.
 	if nInsidePointCount == 1 && nOutsidePointCount == 2 {
+		p1 := IntersectPlane(plane_p, planeN, insidePoints[0], outsidePoints[0])
+		p2 := IntersectPlane(plane_p, planeN, insidePoints[0], outsidePoints[1])
+
+		updateVector(&p1)
+		updateVector(&p2)
+
 		outTri := Triangle{
 			vecs: [3]Vector4{
 				insidePoints[0],
-				IntersectPlane(plane_p, planeN, insidePoints[0], outsidePoints[0]),
-				IntersectPlane(plane_p, planeN, insidePoints[0], outsidePoints[1]),
+				p1,
+				p2,
 			},
 			ilum: in_tri.ilum,
 			tex:  in_tri.tex,
@@ -181,20 +198,27 @@ func ClipAgainstPlane(plane_p, plane_n Vector4, in_tri Triangle) []Triangle {
 
 	// One point of the triangle is outside of view. Clip triangle into a quad (two triangles).
 	if nInsidePointCount == 2 && nOutsidePointCount == 1 {
+		p1 := IntersectPlane(plane_p, planeN, insidePoints[0], outsidePoints[0])
+		updateVector(&p1)
+
 		outTri1 := Triangle{
 			vecs: [3]Vector4{
 				insidePoints[0],
 				insidePoints[1],
-				IntersectPlane(plane_p, planeN, insidePoints[0], outsidePoints[0]),
+				p1,
 			},
 			ilum: in_tri.ilum,
 			tex:  in_tri.tex,
 		}
+
+		p2 := IntersectPlane(plane_p, planeN, insidePoints[1], outsidePoints[0])
+		updateVector(&p2)
+
 		outTri2 := Triangle{
 			vecs: [3]Vector4{
 				insidePoints[1],
 				outTri1.vecs[2],
-				IntersectPlane(plane_p, planeN, insidePoints[1], outsidePoints[0]),
+				p2,
 			},
 			ilum: in_tri.ilum,
 			tex:  in_tri.tex,

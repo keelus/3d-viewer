@@ -48,6 +48,8 @@ func (t Triangle) Draw() {
 		FillTriangle(&t.vecs[2], &t.vecs[1], &t.vecs[0], t.tex)
 	}
 
+	if TRIANGLE_OUTLINE {
+	}
 }
 
 func PutPixel(x, y int, z float32, u, v float32, tex *Texture) {
@@ -108,6 +110,20 @@ func EdgeCross(a, b, p *Vector4) float32 {
 	return (b.x-a.x)*(p.y-a.y) - (b.y-a.y)*(p.x-a.x)
 }
 
+func BaycentricPointInTriangle(area float32, v0, v1, v2, p *Vector4) (bool, float32, float32, float32) {
+	w0 := EdgeCross(v1, v2, p)
+	w1 := EdgeCross(v2, v0, p)
+	w2 := EdgeCross(v0, v1, p)
+
+	alpha := w0 / area
+	beta := w1 / area
+	gamma := w2 / area
+
+	isInside := w0 >= 0 && w1 >= 0 && w2 >= 0
+
+	return isInside, alpha, beta, gamma
+}
+
 func FillTriangle(v0, v1, v2 *Vector4, tex *Texture) {
 	xMin := math.Min(math.Min(v0.x, v1.x), v2.x)
 	yMin := math.Min(math.Min(v0.y, v1.y), v2.y)
@@ -120,28 +136,23 @@ func FillTriangle(v0, v1, v2 *Vector4, tex *Texture) {
 		for x := xMin; x <= xMax; x++ {
 			p := &Vector4{x, y, 0, 0, 0, NewTexVector(0, 0, 0)}
 
-			w0 := EdgeCross(v1, v2, p)
-			w1 := EdgeCross(v2, v0, p)
-			w2 := EdgeCross(v0, v1, p)
-
-			alpha := w0 / area
-			beta := w1 / area
-			gamma := w2 / area
-
-			p.z = alpha*v0.z + beta*v1.z + gamma*v2.z
-			p.texVec.u = alpha*v0.texVec.u + beta*v1.texVec.u + gamma*v2.texVec.u
-			p.texVec.v = alpha*v0.texVec.v + beta*v1.texVec.v + gamma*v2.texVec.v
-			p.texVec.w = alpha*v0.texVec.w + beta*v1.texVec.w + gamma*v2.texVec.w
-			p.originalZ = alpha*v0.originalZ + beta*v1.originalZ + gamma*v2.originalZ
+			isInside, alpha, beta, gamma := BaycentricPointInTriangle(area, v0, v1, v2, p)
+			InterpolateVectors(alpha, beta, gamma, v0, v1, v2, p)
 
 			p.texVec.u /= p.texVec.w
 			p.texVec.v /= p.texVec.w
-
-			isInside := w0 >= 0 && w1 >= 0 && w2 >= 0
 
 			if isInside {
 				DrawPoint(p, tex)
 			}
 		}
 	}
+}
+
+func InterpolateVectors(alpha, beta, gamma float32, v0, v1, v2, target *Vector4) {
+	target.z = alpha*v0.z + beta*v1.z + gamma*v2.z
+	target.texVec.u = alpha*v0.texVec.u + beta*v1.texVec.u + gamma*v2.texVec.u
+	target.texVec.v = alpha*v0.texVec.v + beta*v1.texVec.v + gamma*v2.texVec.v
+	target.texVec.w = alpha*v0.texVec.w + beta*v1.texVec.w + gamma*v2.texVec.w
+	target.originalZ = alpha*v0.originalZ + beta*v1.originalZ + gamma*v2.originalZ
 }
