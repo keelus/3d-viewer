@@ -10,24 +10,20 @@ import (
 	"github.com/ncruces/zenity"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
-
-	"net/http"
-	_ "net/http/pprof"
 )
 
-func init() {
-	go func() {
-		fmt.Println(http.ListenAndServe("localhost:6060", nil))
-	}()
-}
-
 const (
+	SCALE_FACTOR  int     = 4 // To scale down the render resolution. For 1280x720, can be: x1, x2, x4, x8, x16
 	SCREEN_WIDTH  float32 = 1280
 	SCREEN_HEIGHT float32 = 720
-	ASPECT_RATIO  float32 = SCREEN_HEIGHT / SCREEN_WIDTH
+
+	RENDER_WIDTH  float32 = SCREEN_WIDTH / float32(SCALE_FACTOR)
+	RENDER_HEIGHT float32 = SCREEN_HEIGHT / float32(SCALE_FACTOR)
+
+	ASPECT_RATIO float32 = SCREEN_HEIGHT / SCREEN_WIDTH
 
 	DEFAULT_Y_OFFSET   float32 = -1
-	DEFAULT_Z_OFFSET   float32 = 2
+	DEFAULT_Z_OFFSET   float32 = 10
 	DEFAULT_Y_ROTATION float32 = math.Pi
 
 	NEAR_DISTANCE float32 = 0.1
@@ -43,8 +39,11 @@ const (
 var (
 	modelMesh *Mesh
 
-	surface     *sdl.Surface
-	pixelBuffer []byte
+	surface *sdl.Surface
+
+	renderBuffer []byte
+	screenBuffer []byte
+
 	depthBuffer []float32
 
 	flipNormals bool
@@ -108,8 +107,14 @@ func main() {
 		panic(err)
 	}
 
-	pixelBuffer = surface.Pixels()
-	depthBuffer = make([]float32, int(SCREEN_WIDTH)*int(SCREEN_HEIGHT))
+	if SCALE_FACTOR > 1 {
+		renderBuffer = make([]byte, int(RENDER_WIDTH*RENDER_HEIGHT*4))
+		screenBuffer = surface.Pixels()
+	} else {
+		renderBuffer = surface.Pixels()
+	}
+
+	depthBuffer = make([]float32, int(RENDER_WIDTH)*int(RENDER_HEIGHT))
 
 	// Load TTF module and load fonts
 	if err = ttf.Init(); err != nil {
@@ -326,12 +331,12 @@ func main() {
 						triProjected.vecs[2].originalZ = triTransformed.vecs[2].originalZ
 
 						// Expand to screen size
-						triProjected.vecs[0].x *= 0.5 * SCREEN_WIDTH
-						triProjected.vecs[0].y *= 0.5 * SCREEN_HEIGHT
-						triProjected.vecs[1].x *= 0.5 * SCREEN_WIDTH
-						triProjected.vecs[1].y *= 0.5 * SCREEN_HEIGHT
-						triProjected.vecs[2].x *= 0.5 * SCREEN_WIDTH
-						triProjected.vecs[2].y *= 0.5 * SCREEN_HEIGHT
+						triProjected.vecs[0].x *= 0.5 * RENDER_WIDTH
+						triProjected.vecs[0].y *= 0.5 * RENDER_HEIGHT
+						triProjected.vecs[1].x *= 0.5 * RENDER_WIDTH
+						triProjected.vecs[1].y *= 0.5 * RENDER_HEIGHT
+						triProjected.vecs[2].x *= 0.5 * RENDER_WIDTH
+						triProjected.vecs[2].y *= 0.5 * RENDER_HEIGHT
 
 						triangles = append(triangles, triProjected)
 					}
@@ -357,11 +362,11 @@ func main() {
 						case 0:
 							clipped = ClipAgainstPlane(Vector4{0, 0, 0, 1, -1, NewTexVector(0, 0, 0)}, Vector4{0, 1, 0, 1, -1, NewTexVector(0, 0, 0)}, test)
 						case 1:
-							clipped = ClipAgainstPlane(Vector4{0, SCREEN_HEIGHT, 0, 1, -1, NewTexVector(0, 0, 0)}, Vector4{0, -1, 0, 1, -1, NewTexVector(0, 0, 0)}, test)
+							clipped = ClipAgainstPlane(Vector4{0, RENDER_HEIGHT, 0, 1, -1, NewTexVector(0, 0, 0)}, Vector4{0, -1, 0, 1, -1, NewTexVector(0, 0, 0)}, test)
 						case 2:
 							clipped = ClipAgainstPlane(Vector4{0, 0, 0, 1, -1, NewTexVector(0, 0, 0)}, Vector4{1, 0, 0, 1, -1, NewTexVector(0, 0, 0)}, test)
 						case 3:
-							clipped = ClipAgainstPlane(Vector4{SCREEN_WIDTH, 0, 0, 1, -1, NewTexVector(0, 0, 0)}, Vector4{-1, 0, 0, 1, -1, NewTexVector(0, 0, 0)}, test)
+							clipped = ClipAgainstPlane(Vector4{RENDER_WIDTH, 0, 0, 1, -1, NewTexVector(0, 0, 0)}, Vector4{-1, 0, 0, 1, -1, NewTexVector(0, 0, 0)}, test)
 						}
 
 						nTrisToAdd = len(clipped)
@@ -375,6 +380,23 @@ func main() {
 
 				for _, tri := range listTriangles {
 					tri.Draw()
+				}
+			}
+		}
+
+		if SCALE_FACTOR > 1 {
+			for y := 0; y < int(RENDER_HEIGHT); y++ {
+				for x := 0; x < int(RENDER_WIDTH); x++ {
+					screenIdx := y*int(SCREEN_WIDTH)*SCALE_FACTOR*4 + x*SCALE_FACTOR*4
+					renderIdx := (y*int(RENDER_WIDTH) + x) * 4
+
+					for b := 0; b < 4; b++ {
+						for dy := 0; dy < SCALE_FACTOR; dy++ {
+							for dx := 0; dx < SCALE_FACTOR; dx++ {
+								screenBuffer[screenIdx+int(SCREEN_WIDTH)*4*dy+4*dx+b] = renderBuffer[renderIdx+b]
+							}
+						}
+					}
 				}
 			}
 		}
@@ -405,11 +427,11 @@ func main() {
 		// Update and clean screen buffers
 		window.UpdateSurface()
 
-		for i := 0; i < len(pixelBuffer); i += 4 {
-			pixelBuffer[i] = byte((BG_COLOR >> 16) & 0xff)
-			pixelBuffer[i+1] = byte((BG_COLOR >> 8) & 0xff)
-			pixelBuffer[i+2] = byte(BG_COLOR & 0xff)
-			pixelBuffer[i+3] = byte((BG_COLOR >> 24) & 0xff)
+		for i := 0; i < len(renderBuffer); i += 4 {
+			renderBuffer[i] = byte((BG_COLOR >> 16) & 0xff)
+			renderBuffer[i+1] = byte((BG_COLOR >> 8) & 0xff)
+			renderBuffer[i+2] = byte(BG_COLOR & 0xff)
+			renderBuffer[i+3] = byte((BG_COLOR >> 24) & 0xff)
 		}
 
 		for i := 0; i < len(depthBuffer); i++ {
@@ -423,10 +445,6 @@ func LoadFile(filepath string) {
 	modelMesh = ParseObj(filepath)
 
 	ResetCameraView()
-
-	positionOffset.x = 0
-	positionOffset.y = 0
-	positionOffset.z = 2.532563
 
 	filename := path.Base(filepath)
 

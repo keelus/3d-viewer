@@ -53,11 +53,11 @@ func (t Triangle) Draw() {
 }
 
 func PutPixel(x, y int, z float32, u, v float32, tex *Texture) {
-	zIdx := y*int(SCREEN_WIDTH) + x
+	zIdx := y*int(RENDER_WIDTH) + x
 
 	if zIdx >= 0 && zIdx < len(depthBuffer) {
 		if z < depthBuffer[zIdx] {
-			idx := 4 * (y*int(SCREEN_WIDTH) + x)
+			idx := 4 * (y*int(RENDER_WIDTH) + x)
 			c := color.RGBA{255, 0, 255, 255}
 			if tex != nil {
 				c = tex.GetColorAt(u, v)
@@ -73,8 +73,8 @@ func PutPixel(x, y int, z float32, u, v float32, tex *Texture) {
 }
 
 func writePixel(idx int, val byte) {
-	if idx >= 0 && idx < len(pixelBuffer) {
-		pixelBuffer[idx] = val
+	if idx >= 0 && idx < len(renderBuffer) {
+		renderBuffer[idx] = val
 	}
 }
 
