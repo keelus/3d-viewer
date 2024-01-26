@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go-3d-viewer/ui"
 	"path"
+	"sync"
 	"time"
 
 	"math"
@@ -14,7 +15,7 @@ import (
 )
 
 const (
-	SCALE_FACTOR  int = 1 // To scale down the render resolution. For 1280x720, can be: x1, x2, x4, x8, x16
+	SCALE_FACTOR  int = 2 // To scale down the render resolution. For 1280x720, can be: x1, x2, x4, x8, x16
 	SCREEN_WIDTH  int = 1280
 	SCREEN_HEIGHT int = 720
 
@@ -394,20 +395,29 @@ func main() {
 		}
 
 		if SCALE_FACTOR > 1 {
-			for y := 0; y < int(RENDER_HEIGHT); y++ {
-				for x := 0; x < RENDER_WIDTH; x++ {
-					screenIdx := y*int(SCREEN_WIDTH)*SCALE_FACTOR*4 + x*SCALE_FACTOR*4
-					renderIdx := (y*RENDER_WIDTH + x) * 4
+			var wg sync.WaitGroup
 
-					for b := 0; b < 4; b++ {
-						for dy := 0; dy < SCALE_FACTOR; dy++ {
-							for dx := 0; dx < SCALE_FACTOR; dx++ {
-								screenBuffer[screenIdx+int(SCREEN_WIDTH)*4*dy+4*dx+b] = renderBuffer[renderIdx+b]
+			for y := 0; y < int(RENDER_HEIGHT); y++ {
+				wg.Add(1)
+				go func(y int) {
+					defer wg.Done()
+					for x := 0; x < RENDER_WIDTH; x++ {
+
+						screenIdx := y*int(SCREEN_WIDTH)*SCALE_FACTOR*4 + x*SCALE_FACTOR*4
+						renderIdx := (y*RENDER_WIDTH + x) * 4
+
+						for b := 0; b < 4; b++ {
+							for dy := 0; dy < SCALE_FACTOR; dy++ {
+								for dx := 0; dx < SCALE_FACTOR; dx++ {
+									screenBuffer[screenIdx+int(SCREEN_WIDTH)*4*dy+4*dx+b] = renderBuffer[renderIdx+b]
+								}
 							}
 						}
 					}
-				}
+				}(y)
 			}
+
+			wg.Wait()
 		}
 
 		// Draw UI elements
