@@ -2,15 +2,13 @@ package main
 
 import (
 	"image/color"
-	"log"
 
-	math "github.com/chewxy/math32"
-	colorconv "github.com/crazy3lf/colorconv"
+	"math"
 )
 
 type Triangle struct {
 	vecs [3]Vector4
-	ilum float32
+	ilum float64
 	tex  *Texture
 }
 
@@ -24,12 +22,12 @@ var (
 	TRIANGLE_FILL_COLOR    color.RGBA = color.RGBA{255, 255, 255, 255}
 )
 
-func getZ(x1, y1, z1, x2, y2, z2, x, y float32) float32 {
+func getZ(x1, y1, z1, x2, y2, z2, x, y float64) float64 {
 	dx := x2 - x1
 	dy := y2 - y1
 	dz := z2 - z1
 
-	var z float32
+	var z float64
 
 	if dx != 0 {
 		z = ((x-x1)/dx)*dz + z1
@@ -42,77 +40,60 @@ func getZ(x1, y1, z1, x2, y2, z2, x, y float32) float32 {
 	return z
 }
 
+func IsClockWise(a, b, c *Vector4) bool {
+	return EdgeCross(a, b, c) < 0
+}
+
 func (t Triangle) Draw() {
 	if TRIANGLE_FILL {
-		FillTriangle(&t.vecs[0], &t.vecs[1], &t.vecs[2], t.tex)
-		FillTriangle(&t.vecs[2], &t.vecs[1], &t.vecs[0], t.tex)
+		// Fill triangle expects the order to be counter-clockwise (because of EdgeCross order)
+		if IsClockWise(&t.vecs[0], &t.vecs[1], &t.vecs[2]) {
+			FillTriangle(&t.vecs[2], &t.vecs[1], &t.vecs[0], t.tex)
+		} else {
+			FillTriangle(&t.vecs[0], &t.vecs[1], &t.vecs[2], t.tex)
+		}
 	}
 
 	if TRIANGLE_OUTLINE {
 	}
 }
 
-func PutPixel(x, y int, z float32, u, v float32, tex *Texture) {
-	zIdx := y*int(RENDER_WIDTH) + x
+func PutPixel(p *Vector4, tex *Texture) {
+	fx, fy := int((p.x)), int((p.y))
 
-	if zIdx >= 0 && zIdx < len(depthBuffer) {
-		if z < depthBuffer[zIdx] {
-			idx := 4 * (y*int(RENDER_WIDTH) + x)
+	zIdx := fy*RENDER_WIDTH + fx
+
+	if zIdx >= 0 && zIdx < depthBufferLength {
+		if p.originalZ < depthBuffer[zIdx] {
+			idx := 4 * (fy*RENDER_WIDTH + fx)
 			c := color.RGBA{255, 0, 255, 255}
 			if tex != nil {
-				c = tex.GetColorAt(u, v)
+				c = tex.GetColorAt(p.texVec.u, p.texVec.v)
 			}
-			writePixel(idx+0, c.B) // B
-			writePixel(idx+1, c.G) // G
-			writePixel(idx+2, c.R) // R
-			writePixel(idx+3, c.A) // A
 
-			depthBuffer[zIdx] = z
+			renderBuffer[idx+0] = c.B
+			renderBuffer[idx+1] = c.G
+			renderBuffer[idx+2] = c.R
+			renderBuffer[idx+3] = c.A
+
+			depthBuffer[zIdx] = p.originalZ
 		}
 	}
 }
 
-func writePixel(idx int, val byte) {
-	if idx >= 0 && idx < len(renderBuffer) {
-		renderBuffer[idx] = val
-	}
-}
-
-func colorFromZ(z float32) color.RGBA {
-	var val float32 = math.Abs(0 + (1-0)*((z-4)/(10-4))*360)
-
-	if val == 360 {
-		val = 359
-	}
-
-	r, g, b, err := colorconv.HSLToRGB(float64(val), 1, 0.5)
-	if err != nil {
-		log.Print(err)
-	}
-
-	return color.RGBA{
-		r,
-		g,
-		b,
-		255,
-	}
-}
-
 func DrawPoint(v *Vector4, tex *Texture) {
-	nx := int(math.Round(v.x))
-	ny := int(math.Round(v.y))
-	PutPixel(nx, ny, v.originalZ, v.texVec.u, v.texVec.v, tex)
+	PutPixel(v, tex)
 }
 
-func GetSlope(vA, vB Vector4) float32 {
+func GetSlope(vA, vB Vector4) float64 {
 	return (vB.x - vA.x) / (vB.y - vA.y)
 }
 
-func EdgeCross(a, b, p *Vector4) float32 {
+func EdgeCross(a, b, p *Vector4) float64 {
 	return (b.x-a.x)*(p.y-a.y) - (b.y-a.y)*(p.x-a.x)
 }
 
-func BaycentricPointInTriangle(area float32, v0, v1, v2, p *Vector4) (bool, float32, float32, float32) {
+func BaycentricPointInTriangle(area float64, v0, v1, v2, p *Vector4) (bool, float64, float64, float64) {
 	w0 := EdgeCross(v1, v2, p)
 	w1 := EdgeCross(v2, v0, p)
 	w2 := EdgeCross(v0, v1, p)
@@ -149,7 +130,7 @@ func FillTriangle(v0, v1, v2 *Vector4, tex *Texture) {
 	deltaW1Row := v0.x - v2.x
 	deltaW2Row := v1.x - v0.x
 
-	var bias0, bias1, bias2 float32
+	var bias0, bias1, bias2 float64
 	if isTopLeft(v1, v2) {
 		bias0 = 0
 	} else {
@@ -189,14 +170,18 @@ func FillTriangle(v0, v1, v2 *Vector4, tex *Texture) {
 				beta := w1 / area
 				gamma := w2 / area
 
-				InterpolateVectors(alpha, beta, gamma, v0, v1, v2, p)
+				p.z = alpha*v0.z + beta*v1.z + gamma*v2.z
+				p.texVec.u = alpha*v0.texVec.u + beta*v1.texVec.u + gamma*v2.texVec.u
+				p.texVec.v = alpha*v0.texVec.v + beta*v1.texVec.v + gamma*v2.texVec.v
+				p.texVec.w = alpha*v0.texVec.w + beta*v1.texVec.w + gamma*v2.texVec.w
+				p.originalZ = alpha*v0.originalZ + beta*v1.originalZ + gamma*v2.originalZ
 
 				if p.texVec.w != 0 {
 					p.texVec.u /= p.texVec.w
 					p.texVec.v /= p.texVec.w
 				}
 
-				DrawPoint(p, tex)
+				PutPixel(p, tex)
 			}
 			w0 += deltaW0Col
 			w1 += deltaW1Col
@@ -208,7 +193,7 @@ func FillTriangle(v0, v1, v2 *Vector4, tex *Texture) {
 	}
 }
 
-func InterpolateVectors(alpha, beta, gamma float32, v0, v1, v2, target *Vector4) {
+func InterpolateVectors(alpha, beta, gamma float64, v0, v1, v2, target *Vector4) {
 	target.z = alpha*v0.z + beta*v1.z + gamma*v2.z
 	target.texVec.u = alpha*v0.texVec.u + beta*v1.texVec.u + gamma*v2.texVec.u
 	target.texVec.v = alpha*v0.texVec.v + beta*v1.texVec.v + gamma*v2.texVec.v

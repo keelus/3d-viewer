@@ -1,10 +1,8 @@
-module ne3d
+module go-3d-viewer
 
 go 1.21.5
 
 require (
-	github.com/chewxy/math32 v1.10.1
-	github.com/crazy3lf/colorconv v1.2.0
 	github.com/ncruces/zenity v0.10.10
 	github.com/veandco/go-sdl2 v0.4.38
 )

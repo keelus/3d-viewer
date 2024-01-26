@@ -2,36 +2,43 @@ package main
 
 import (
 	"fmt"
-	"ne3d/ui"
+	"go-3d-viewer/ui"
 	"path"
 	"time"
 
-	math "github.com/chewxy/math32"
+	"math"
+
 	"github.com/ncruces/zenity"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
 )
 
 const (
-	SCALE_FACTOR  int     = 4 // To scale down the render resolution. For 1280x720, can be: x1, x2, x4, x8, x16
-	SCREEN_WIDTH  float32 = 1280
-	SCREEN_HEIGHT float32 = 720
+	SCALE_FACTOR  int = 1 // To scale down the render resolution. For 1280x720, can be: x1, x2, x4, x8, x16
+	SCREEN_WIDTH  int = 1280
+	SCREEN_HEIGHT int = 720
 
-	RENDER_WIDTH  float32 = SCREEN_WIDTH / float32(SCALE_FACTOR)
-	RENDER_HEIGHT float32 = SCREEN_HEIGHT / float32(SCALE_FACTOR)
+	RENDER_WIDTH  int = SCREEN_WIDTH / (SCALE_FACTOR)
+	RENDER_HEIGHT int = SCREEN_HEIGHT / (SCALE_FACTOR)
 
-	ASPECT_RATIO float32 = SCREEN_HEIGHT / SCREEN_WIDTH
+	RENDER_WIDTH_FLOAT  float64 = float64(RENDER_WIDTH)
+	RENDER_HEIGHT_FLOAT float64 = float64(RENDER_HEIGHT)
 
-	DEFAULT_Y_OFFSET   float32 = -1
-	DEFAULT_Z_OFFSET   float32 = 10
-	DEFAULT_Y_ROTATION float32 = math.Pi
+	RENDER_WIDTH_HALF  float64 = RENDER_WIDTH_FLOAT * 0.5
+	RENDER_HEIGHT_HALF float64 = RENDER_HEIGHT_FLOAT * 0.5
 
-	NEAR_DISTANCE float32 = 0.1
-	FAR_DISTANCE  float32 = 1000
-	FOV_DEGREES   float32 = 90
+	ASPECT_RATIO float64 = float64(SCREEN_HEIGHT) / float64(SCREEN_WIDTH)
 
-	ROTATION_SPEED float32 = 2
-	POSITION_SPEED float32 = 10
+	DEFAULT_Y_OFFSET   float64 = -1
+	DEFAULT_Z_OFFSET   float64 = 10
+	DEFAULT_Y_ROTATION float64 = math.Pi
+
+	NEAR_DISTANCE float64 = 0.1
+	FAR_DISTANCE  float64 = 1000
+	FOV_DEGREES   float64 = 90
+
+	ROTATION_SPEED float64 = 2
+	POSITION_SPEED float64 = 10
 
 	BG_COLOR uint32 = 0xff202020 // 0xAABBGGRR
 )
@@ -44,11 +51,12 @@ var (
 	renderBuffer []byte
 	screenBuffer []byte
 
-	depthBuffer []float32
+	depthBuffer       []float64
+	depthBufferLength int
 
 	flipNormals bool
 
-	tDelta float32 = 0
+	tDelta float64 = 0
 
 	positionOffset, rotationTheta Vector4
 )
@@ -108,13 +116,14 @@ func main() {
 	}
 
 	if SCALE_FACTOR > 1 {
-		renderBuffer = make([]byte, int(RENDER_WIDTH*RENDER_HEIGHT*4))
+		renderBuffer = make([]byte, RENDER_WIDTH*RENDER_HEIGHT*4)
 		screenBuffer = surface.Pixels()
 	} else {
 		renderBuffer = surface.Pixels()
 	}
 
-	depthBuffer = make([]float32, int(RENDER_WIDTH)*int(RENDER_HEIGHT))
+	depthBuffer = make([]float64, RENDER_WIDTH*RENDER_HEIGHT)
+	depthBufferLength = len(depthBuffer)
 
 	// Load TTF module and load fonts
 	if err = ttf.Init(); err != nil {
@@ -205,7 +214,7 @@ func main() {
 		}
 
 		// Get tDelta
-		tDelta = float32(time.Now().Sub(lastFrame).Seconds())
+		tDelta = float64(time.Now().Sub(lastFrame).Seconds())
 		lblFps.SetText(fmt.Sprintf("FPS: %d", int(1/tDelta)))
 		lastFrame = time.Now()
 
@@ -216,7 +225,7 @@ func main() {
 
 		// Handle keyboard and mouse input
 		if CTRL_PRESSED && MOUSE_CLICK {
-			var MOUSE_ROTATION_SPEED float32 = 5
+			var MOUSE_ROTATION_SPEED float64 = 5
 			if diffX != 0 {
 				if diffX > 1 {
 					rotationTheta.y += MOUSE_ROTATION_SPEED * tDelta
@@ -331,12 +340,12 @@ func main() {
 						triProjected.vecs[2].originalZ = triTransformed.vecs[2].originalZ
 
 						// Expand to screen size
-						triProjected.vecs[0].x *= 0.5 * RENDER_WIDTH
-						triProjected.vecs[0].y *= 0.5 * RENDER_HEIGHT
-						triProjected.vecs[1].x *= 0.5 * RENDER_WIDTH
-						triProjected.vecs[1].y *= 0.5 * RENDER_HEIGHT
-						triProjected.vecs[2].x *= 0.5 * RENDER_WIDTH
-						triProjected.vecs[2].y *= 0.5 * RENDER_HEIGHT
+						triProjected.vecs[0].x *= RENDER_WIDTH_HALF
+						triProjected.vecs[0].y *= RENDER_HEIGHT_HALF
+						triProjected.vecs[1].x *= RENDER_WIDTH_HALF
+						triProjected.vecs[1].y *= RENDER_HEIGHT_HALF
+						triProjected.vecs[2].x *= RENDER_WIDTH_HALF
+						triProjected.vecs[2].y *= RENDER_HEIGHT_HALF
 
 						triangles = append(triangles, triProjected)
 					}
@@ -362,11 +371,11 @@ func main() {
 						case 0:
 							clipped = ClipAgainstPlane(Vector4{0, 0, 0, 1, -1, NewTexVector(0, 0, 0)}, Vector4{0, 1, 0, 1, -1, NewTexVector(0, 0, 0)}, test)
 						case 1:
-							clipped = ClipAgainstPlane(Vector4{0, RENDER_HEIGHT, 0, 1, -1, NewTexVector(0, 0, 0)}, Vector4{0, -1, 0, 1, -1, NewTexVector(0, 0, 0)}, test)
+							clipped = ClipAgainstPlane(Vector4{0, RENDER_HEIGHT_FLOAT, 0, 1, -1, NewTexVector(0, 0, 0)}, Vector4{0, -1, 0, 1, -1, NewTexVector(0, 0, 0)}, test)
 						case 2:
 							clipped = ClipAgainstPlane(Vector4{0, 0, 0, 1, -1, NewTexVector(0, 0, 0)}, Vector4{1, 0, 0, 1, -1, NewTexVector(0, 0, 0)}, test)
 						case 3:
-							clipped = ClipAgainstPlane(Vector4{RENDER_WIDTH, 0, 0, 1, -1, NewTexVector(0, 0, 0)}, Vector4{-1, 0, 0, 1, -1, NewTexVector(0, 0, 0)}, test)
+							clipped = ClipAgainstPlane(Vector4{RENDER_WIDTH_FLOAT, 0, 0, 1, -1, NewTexVector(0, 0, 0)}, Vector4{-1, 0, 0, 1, -1, NewTexVector(0, 0, 0)}, test)
 						}
 
 						nTrisToAdd = len(clipped)
@@ -386,9 +395,9 @@ func main() {
 
 		if SCALE_FACTOR > 1 {
 			for y := 0; y < int(RENDER_HEIGHT); y++ {
-				for x := 0; x < int(RENDER_WIDTH); x++ {
+				for x := 0; x < RENDER_WIDTH; x++ {
 					screenIdx := y*int(SCREEN_WIDTH)*SCALE_FACTOR*4 + x*SCALE_FACTOR*4
-					renderIdx := (y*int(RENDER_WIDTH) + x) * 4
+					renderIdx := (y*RENDER_WIDTH + x) * 4
 
 					for b := 0; b < 4; b++ {
 						for dy := 0; dy < SCALE_FACTOR; dy++ {
@@ -435,7 +444,7 @@ func main() {
 		}
 
 		for i := 0; i < len(depthBuffer); i++ {
-			depthBuffer[i] = math.MaxFloat32
+			depthBuffer[i] = math.MaxFloat64
 		}
 	}
 
@@ -452,7 +461,7 @@ func LoadFile(filepath string) {
 	lblFileInfoTriangles.SetText(fmt.Sprintf("Triangles: %d", modelMesh.triangleAmount))
 	lblFileInfoVertices.SetText(fmt.Sprintf("Vertices: %d", modelMesh.vertexAmount))
 
-	width := math.Max(math.Max(float32(lblFileInfoName.GetRectWidth()), float32(lblFileInfoTriangles.GetRectWidth())), float32(lblFileInfoVertices.GetRectWidth()))
+	width := math.Max(math.Max(float64(lblFileInfoName.GetRectWidth()), float64(lblFileInfoTriangles.GetRectWidth())), float64(lblFileInfoVertices.GetRectWidth()))
 
 	cbFileInfo.UpdateRectToWidth(int32(width))
 }

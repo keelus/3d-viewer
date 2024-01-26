@@ -1,20 +1,20 @@
 package main
 
 import (
-	math "github.com/chewxy/math32"
+	"math"
 )
 
 type TexVector struct {
-	u, v, w float32
+	u, v, w float64
 }
 
-func NewTexVector(u, v, w float32) TexVector {
+func NewTexVector(u, v, w float64) TexVector {
 	return TexVector{u, v, w}
 }
 
 type Vector4 struct {
-	x, y, z, w float32
-	originalZ  float32
+	x, y, z, w float64
+	originalZ  float64
 
 	texVec TexVector
 }
@@ -49,7 +49,7 @@ func (v1 Vector4) Sub(v2 Vector4) Vector4 {
 	}
 }
 
-func (v Vector4) Mul(k float32) Vector4 {
+func (v Vector4) Mul(k float64) Vector4 {
 	return Vector4{
 		v.x * k,
 		v.y * k,
@@ -64,7 +64,7 @@ func (v Vector4) Mul(k float32) Vector4 {
 	}
 }
 
-func (v Vector4) Div(k float32) Vector4 {
+func (v Vector4) Div(k float64) Vector4 {
 	return Vector4{
 		v.x / k,
 		v.y / k,
@@ -79,11 +79,11 @@ func (v Vector4) Div(k float32) Vector4 {
 	}
 }
 
-func (v1 Vector4) Dot(v2 Vector4) float32 {
+func (v1 Vector4) Dot(v2 Vector4) float64 {
 	return v1.x*v2.x + v1.y*v2.y + v1.z*v2.z
 }
 
-func (v Vector4) Len() float32 {
+func (v Vector4) Len() float64 {
 	return math.Sqrt(v.Dot(v))
 }
 
@@ -135,7 +135,7 @@ func IntersectPlane(plane_p, plane_n, lineStart, lineEnd Vector4) Vector4 {
 func ClipAgainstPlane(plane_p, plane_n Vector4, in_tri Triangle) []Triangle {
 	planeN := plane_n.Normalise()
 
-	dist := func(p Vector4) float32 {
+	dist := func(p Vector4) float64 {
 		return planeN.x*p.x + planeN.y*p.y + planeN.z*p.z - planeN.Dot(plane_p)
 	}
 

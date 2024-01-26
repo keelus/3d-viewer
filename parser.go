@@ -18,7 +18,7 @@ func parseVector(parts []string) Vector4 {
 			log.Fatalf("Error parsing the vertice float '%s'", parts[1])
 		}
 
-		num32 := float32(num)
+		num32 := float64(num)
 
 		switch i {
 		case 1:
@@ -90,7 +90,7 @@ func GetTexVerts(bytes []byte) []TexVector {
 					return texVerts
 				}
 
-				num32 := float32(num)
+				num32 := float64(num)
 
 				switch i {
 				case 1:
@@ -107,11 +107,11 @@ func GetTexVerts(bytes []byte) []TexVector {
 	return texVerts
 }
 
-func GetVerts(bytes []byte) ([]Vector4, [3]float32, [3]float32) {
+func GetVerts(bytes []byte) ([]Vector4, [3]float64, [3]float64) {
 	verts := []Vector4{}
 
-	lowests := [3]float32{math.MaxFloat32, math.MaxFloat32, math.MaxFloat32}
-	highests := [3]float32{-math.MaxFloat32, -math.MaxFloat32, -math.MaxFloat32}
+	lowests := [3]float64{math.MaxFloat64, math.MaxFloat64, math.MaxFloat64}
+	highests := [3]float64{-math.MaxFloat64, -math.MaxFloat64, -math.MaxFloat64}
 
 	for _, line := range strings.Split(string(bytes), "\n") {
 		cleanLine := strings.TrimSpace(line)

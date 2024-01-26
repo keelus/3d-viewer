@@ -1,7 +1,7 @@
 package main
 
-import math "github.com/chewxy/math32"
+import "math"
 
-func degToRad(deg float32) float32 {
+func degToRad(deg float64) float64 {
 	return deg * math.Pi / 180
 }

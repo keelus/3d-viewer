@@ -5,7 +5,7 @@ type Mesh struct {
 	triangleAmount, vertexAmount int
 
 	// Lowest and highest vertice values (used to center and offset camera)
-	lowestX, highestX float32
-	lowestY, highestY float32
-	lowestZ, highestZ float32
+	lowestX, highestX float64
+	lowestY, highestY float64
+	lowestZ, highestZ float64
 }

@@ -1,11 +1,11 @@
 package main
 
 import (
-	math "github.com/chewxy/math32"
+	"math"
 )
 
 type mat44 struct {
-	m [4][4]float32
+	m [4][4]float64
 }
 
 func (m mat44) multiplyVector(i Vector4) Vector4 {
@@ -33,7 +33,7 @@ func (m mat44) multiplyTriangle(t Triangle) Triangle {
 
 func identityMatrix() mat44 {
 	return mat44{
-		m: [4][4]float32{
+		m: [4][4]float64{
 			{1, 0, 0, 0},
 			{0, 1, 0, 0},
 			{0, 0, 1, 0},
@@ -48,7 +48,7 @@ func rotationMatrix(rotationRads Vector4) mat44 {
 	alpha := rotationRads.z
 
 	mat := mat44{
-		m: [4][4]float32{
+		m: [4][4]float64{
 			{math.Cos(alpha) * math.Cos(beta), math.Cos(alpha)*math.Sin(beta)*math.Sin(gamma) - math.Sin(alpha)*math.Cos(gamma), math.Cos(alpha)*math.Sin(beta)*math.Cos(gamma) + math.Sin(alpha)*math.Sin(gamma), 0},
 			{math.Sin(alpha) * math.Cos(beta), math.Sin(alpha)*math.Sin(beta)*math.Sin(gamma) + math.Cos(alpha)*math.Cos(gamma), math.Sin(alpha)*math.Sin(beta)*math.Cos(gamma) - math.Cos(alpha)*math.Sin(gamma), 0},
 			{-math.Sin(beta), math.Cos(beta) * math.Sin(gamma), math.Cos(beta) * math.Cos(gamma), 0},
@@ -59,9 +59,9 @@ func rotationMatrix(rotationRads Vector4) mat44 {
 	return mat
 }
 
-func MakeTranslation(x, y, z float32) mat44 {
+func MakeTranslation(x, y, z float64) mat44 {
 	return mat44{
-		m: [4][4]float32{
+		m: [4][4]float64{
 			{1, 0, 0, 0},
 			{0, 1, 0, 0},
 			{0, 0, 1, 0},
@@ -70,10 +70,10 @@ func MakeTranslation(x, y, z float32) mat44 {
 	}
 }
 
-func projectionMatrix(aspectRatio, fovDeg, nearDist, farDist float32) mat44 {
+func projectionMatrix(aspectRatio, fovDeg, nearDist, farDist float64) mat44 {
 	fovRad := 1 / math.Tan(degToRad(fovDeg/2))
 	return mat44{
-		m: [4][4]float32{
+		m: [4][4]float64{
 			{aspectRatio * fovRad, 0, 0, 0},
 			{0, fovRad, 0, 0},
 			{0, 0, farDist / (farDist - nearDist), -1},
