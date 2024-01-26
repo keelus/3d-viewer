@@ -99,7 +99,9 @@ func colorFromZ(z float32) color.RGBA {
 }
 
 func DrawPoint(v *Vector4, tex *Texture) {
-	PutPixel(int(v.x), int(v.y), v.originalZ, v.texVec.u, v.texVec.v, tex)
+	nx := int(math.Round(v.x))
+	ny := int(math.Round(v.y))
+	PutPixel(nx, ny, v.originalZ, v.texVec.u, v.texVec.v, tex)
 }
 
 func GetSlope(vA, vB Vector4) float32 {
@@ -124,28 +126,85 @@ func BaycentricPointInTriangle(area float32, v0, v1, v2, p *Vector4) (bool, floa
 	return isInside, alpha, beta, gamma
 }
 
+func isTopLeft(start, end *Vector4) bool {
+	edge := Vector4{x: end.x - start.x, y: end.y - start.y}
+
+	isTopEdge := edge.y == 0 && edge.x > 0
+	isLeftEdge := edge.y < 0
+
+	return isTopEdge || isLeftEdge
+}
+
 func FillTriangle(v0, v1, v2 *Vector4, tex *Texture) {
-	xMin := math.Min(math.Min(v0.x, v1.x), v2.x)
-	yMin := math.Min(math.Min(v0.y, v1.y), v2.y)
-	xMax := math.Max(math.Max(v0.x, v1.x), v2.x)
-	yMax := math.Max(math.Max(v0.y, v1.y), v2.y)
+	xMin := math.Floor(math.Min(math.Min(v0.x, v1.x), v2.x))
+	yMin := math.Floor(math.Min(math.Min(v0.y, v1.y), v2.y))
+	xMax := math.Ceil(math.Max(math.Max(v0.x, v1.x), v2.x))
+	yMax := math.Ceil(math.Max(math.Max(v0.y, v1.y), v2.y))
+
+	deltaW0Col := v1.y - v2.y
+	deltaW1Col := v2.y - v0.y
+	deltaW2Col := v0.y - v1.y
+
+	deltaW0Row := v2.x - v1.x
+	deltaW1Row := v0.x - v2.x
+	deltaW2Row := v1.x - v0.x
+
+	var bias0, bias1, bias2 float32
+	if isTopLeft(v1, v2) {
+		bias0 = 0
+	} else {
+		bias0 = -0.00001
+	}
+	if isTopLeft(v2, v0) {
+		bias1 = 0
+	} else {
+		bias1 = -0.00001
+	}
+	if isTopLeft(v0, v1) {
+		bias2 = 0
+	} else {
+		bias2 = -0.00001
+	}
 
 	area := EdgeCross(v0, v1, v2)
 
+	p := &Vector4{xMin + 0.5, yMin + 0.5, 0, 0, 0, NewTexVector(0, 0, 0)}
+
+	w0Row := EdgeCross(v1, v2, p) + bias0
+	w1Row := EdgeCross(v2, v0, p) + bias1
+	w2Row := EdgeCross(v0, v1, p) + bias2
+
 	for y := yMin; y <= yMax; y++ {
+		w0 := w0Row
+		w1 := w1Row
+		w2 := w2Row
 		for x := xMin; x <= xMax; x++ {
-			p := &Vector4{x, y, 0, 0, 0, NewTexVector(0, 0, 0)}
-
-			isInside, alpha, beta, gamma := BaycentricPointInTriangle(area, v0, v1, v2, p)
-			InterpolateVectors(alpha, beta, gamma, v0, v1, v2, p)
-
-			p.texVec.u /= p.texVec.w
-			p.texVec.v /= p.texVec.w
+			isInside := w0 >= 0 && w1 >= 0 && w2 >= 0
 
 			if isInside {
+				p.x = x
+				p.y = y
+
+				alpha := w0 / area
+				beta := w1 / area
+				gamma := w2 / area
+
+				InterpolateVectors(alpha, beta, gamma, v0, v1, v2, p)
+
+				if p.texVec.w != 0 {
+					p.texVec.u /= p.texVec.w
+					p.texVec.v /= p.texVec.w
+				}
+
 				DrawPoint(p, tex)
 			}
+			w0 += deltaW0Col
+			w1 += deltaW1Col
+			w2 += deltaW2Col
 		}
+		w0Row += deltaW0Row
+		w1Row += deltaW1Row
+		w2Row += deltaW2Row
 	}
 }
 
