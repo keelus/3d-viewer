@@ -232,7 +232,10 @@ func main() {
 		}
 
 		// Get tDelta
-		tDelta = float64(time.Now().Sub(lastFrame).Seconds())
+		tDeltaNew := float64(time.Now().Sub(lastFrame).Seconds())
+		if int(1/tDeltaNew) >= 0 { // Prevent overflow
+			tDelta = tDeltaNew
+		}
 		lblFps.SetText(fmt.Sprintf("FPS: %d", int(1/tDelta)))
 		lastFrame = time.Now()
 
