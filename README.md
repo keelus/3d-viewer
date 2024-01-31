@@ -51,6 +51,7 @@ Then, you can open it running:
 
 ## Compile
 To compile the project, you will need SDL2 and SDL2_TTF properly installed in your system. Also, a C compiler could be needed (such as [GCC](https://gcc.gnu.org/)).
+If you encounter any issues while compiling, please check [go-sdl2](https://github.com/veandco/go-sdl2) compiling guide.
 ### 🪟 Windows
 To compile the app, just run:
 ```bash
