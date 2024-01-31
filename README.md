@@ -1,4 +1,4 @@
-<h1 align="center">3d-viewer</h1>
+[<h1 align="center">3d-viewer</h1>
 
 <p align="center">
   <a href="./LICENSE"><img src="https://img.shields.io/badge/⚖️ license-MIT-blue" alt="MIT License"></a>
@@ -29,12 +29,12 @@ I made it from scratch to learn 3D rendering concepts, mathematics and algorithm
 
 
 ## 🔨 Requirements
-To use and/or compile the application, you will need to have [SDL2](https://www.libsdl.org/) and [SDL2_TTF](https://www.libsdl.org/) installed correctly in your system.
+To use and/or compile the application, you will need to have [SDL2](https://github.com/libsdl-org/SDL/releases/latest) and [SDL2_TTF](https://github.com/libsdl-org/SDL_ttf/releases/latest) installed correctly in your system.
 
 ## ⬇️ Install & run it
-The project is compatible with Windows, Linux and macOS, as long as you met the Requirements.
+The project is compatible with Windows, Linux and macOS, when requeriments are installed.
 
-To use it, simply download the [latest release](https://github.com/keelus/3d-viewer/releases/latest) binary file and execute it.
+To use it, simply download the [latest release](https://github.com/keelus/3d-viewer/releases/latest) binary file and execute it (unzip and execute on Windows).
 
 ### 🐧 Linux & macOS
 To make the downloaded binary executable, run:
@@ -59,6 +59,7 @@ go mod tidy
 ```bash
 go build -o 3d_viewer.exe -ldflags "-s -w -H windowsgui"
 ```
+Make sure to have `SDL2.dll` and `SDL2_ttf.dll` files in the same place of the `.exe`.
 ### 🐧 Linux or macOS
 To compile the app, just run:
 ```bash
@@ -80,3 +81,4 @@ This project is open source under the terms of the [MIT License](./LICENSE)
 
 Made by <a href="https://github.com/keelus">keelus</a> ✌️
 
+](https://github.com/libsdl-org/SDL_ttf/releases/latest)https://github.com/libsdl-org/SDL_ttf/releases/latest
