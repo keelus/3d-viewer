@@ -40,13 +40,13 @@ To use it, simply download the [latest release](https://github.com/keelus/3d-vie
 ### 🐧 Linux & macOS
 To make the downloaded binary executable, run:
 ```bash
-chmod +x 3d_viewer<rest of the file>
+chmod +x 3d_viewer-<rest of the file>
 ```
-In newer versions of macOS, you might need to run `xattr -c 3d_viewer<rest of the filename>` if you get an error message while opening the app.
+In newer versions of macOS, you might need to run `xattr -c 3d_viewer-<rest of the filename>` if you get an error message while opening the app.
 
 Then, you can open it running:
 ```bash
-./3d_viewer<rest of the file>
+./3d_viewer-<rest of the file>
 ```
 
 ## Compile
