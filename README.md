@@ -15,6 +15,7 @@ I made it from scratch to learn 3D rendering concepts, mathematics and algorithm
 - Fast and smooth rendering.
 - Simple camera system to move and rotate the object around.
 - Buttons to change the resolution (to gain performance for more complex objects)
+- Support for .obj 3D files and .mtl material files (with PNG and JPEG texture formats).
 
 ## 🐛 Known errors
 In very specific cases where the Z position of the camera is exactly 0, and rotation is default, some triangles might not be displayed correctly. This can be corrected by just moving or rotating the camera by a few pixels.
