@@ -69,6 +69,9 @@ func PutPixel(p *Vector4, tex *Texture) {
 			c := color.RGBA{255, 0, 255, 255}
 			if tex != nil {
 				c = tex.GetColorAt(p.texVec.u, p.texVec.v)
+				if c.A == 0 {
+					return
+				}
 			}
 
 			renderBuffer[idx+0] = c.B
