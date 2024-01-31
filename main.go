@@ -1,8 +1,8 @@
 package main
 
 import (
+	"3d-viewer/ui"
 	"fmt"
-	"go-3d-viewer/ui"
 	"log"
 	"path"
 	"sync"
@@ -115,7 +115,7 @@ func main() {
 	}
 	defer sdl.Quit()
 
-	window, err := sdl.CreateWindow("Testing", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, int32(SCREEN_WIDTH), int32(SCREEN_HEIGHT), sdl.WINDOW_SHOWN)
+	window, err := sdl.CreateWindow("3D viewer", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, int32(SCREEN_WIDTH), int32(SCREEN_HEIGHT), sdl.WINDOW_SHOWN)
 	if err != nil {
 		panic(err)
 	}
@@ -396,20 +396,20 @@ func main() {
 				for p := 0; p < 4; p++ {
 					nTrisToAdd := 0
 					for nNewTriangles > 0 {
-						test := listTriangles[0]
+						curTri := listTriangles[0]
 						listTriangles = listTriangles[1:]
 						nNewTriangles--
 
 						// Clip against each plane (screen borders)
 						switch p {
 						case 0:
-							clipped = ClipAgainstPlane(Vector4{0, 0, 0, 1, -1, NewTexVector(0, 0, 0)}, Vector4{0, 1, 0, 1, -1, NewTexVector(0, 0, 0)}, test)
+							clipped = ClipAgainstPlane(Vector4{0, 0, 0, 1, -1, NewTexVector(0, 0, 0)}, Vector4{0, 1, 0, 1, -1, NewTexVector(0, 0, 0)}, curTri)
 						case 1:
-							clipped = ClipAgainstPlane(Vector4{0, RENDER_HEIGHT_FLOAT, 0, 1, -1, NewTexVector(0, 0, 0)}, Vector4{0, -1, 0, 1, -1, NewTexVector(0, 0, 0)}, test)
+							clipped = ClipAgainstPlane(Vector4{0, RENDER_HEIGHT_FLOAT, 0, 1, -1, NewTexVector(0, 0, 0)}, Vector4{0, -1, 0, 1, -1, NewTexVector(0, 0, 0)}, curTri)
 						case 2:
-							clipped = ClipAgainstPlane(Vector4{0, 0, 0, 1, -1, NewTexVector(0, 0, 0)}, Vector4{1, 0, 0, 1, -1, NewTexVector(0, 0, 0)}, test)
+							clipped = ClipAgainstPlane(Vector4{0, 0, 0, 1, -1, NewTexVector(0, 0, 0)}, Vector4{1, 0, 0, 1, -1, NewTexVector(0, 0, 0)}, curTri)
 						case 3:
-							clipped = ClipAgainstPlane(Vector4{RENDER_WIDTH_FLOAT, 0, 0, 1, -1, NewTexVector(0, 0, 0)}, Vector4{-1, 0, 0, 1, -1, NewTexVector(0, 0, 0)}, test)
+							clipped = ClipAgainstPlane(Vector4{RENDER_WIDTH_FLOAT, 0, 0, 1, -1, NewTexVector(0, 0, 0)}, Vector4{-1, 0, 0, 1, -1, NewTexVector(0, 0, 0)}, curTri)
 						}
 
 						nTrisToAdd = len(clipped)

@@ -1,4 +1,4 @@
-module go-3d-viewer
+module 3d-viewer
 
 go 1.21.5
 
