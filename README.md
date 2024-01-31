@@ -20,6 +20,11 @@ I made it from scratch to learn 3D rendering concepts, mathematics and algorithm
 In very specific cases where the Z position of the camera is exactly 0, and rotation is default, some triangles might not be displayed correctly. This can be corrected by just moving or rotating the camera by a few pixels.
 
 ## 📸 Screenshots
+<p align="center">
+  <img src="https://github.com/keelus/go-3d-viewer/assets/86611436/3fd531f6-151e-4649-bc8c-a5341c047af2" style="width:75%;" /><br>
+  <img src="https://github.com/keelus/go-3d-viewer/assets/86611436/344c17ce-c4ef-4510-8d41-7bb9954fdad4" style="width:75%;" />
+</p>
+
 
 
 ## 🔨 Requirements
