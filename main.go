@@ -111,12 +111,14 @@ var (
 func main() {
 	// SDL and window setup
 	if err := sdl.Init(sdl.INIT_EVERYTHING); err != nil {
+		zenity.Error(fmt.Sprintf("Error initializing SDL2.\n%s", err), zenity.Title("SDL2 error"), zenity.ErrorIcon)
 		panic(err)
 	}
 	defer sdl.Quit()
 
 	window, err := sdl.CreateWindow("3D viewer", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, int32(SCREEN_WIDTH), int32(SCREEN_HEIGHT), sdl.WINDOW_SHOWN)
 	if err != nil {
+		zenity.Error(fmt.Sprintf("Error creating the SDL2 window.\n%s", err), zenity.Title("SDL2 error"), zenity.ErrorIcon)
 		panic(err)
 	}
 	defer window.Destroy()
@@ -124,6 +126,7 @@ func main() {
 	// Window surface and depth buffer setup
 	surface, err = window.GetSurface()
 	if err != nil {
+		zenity.Error(fmt.Sprintf("Error getting the window surface.\n%s", err), zenity.Title("SDL2 error"), zenity.ErrorIcon)
 		panic(err)
 	}
 
@@ -131,7 +134,8 @@ func main() {
 
 	// Load TTF module and load fonts
 	if err = ttf.Init(); err != nil {
-		return
+		zenity.Error(fmt.Sprintf("Error initializing SDL2_ttf.\n%s", err), zenity.Title("SDL2 error"), zenity.ErrorIcon)
+		panic(err)
 	}
 	defer ttf.Quit()
 
@@ -232,11 +236,10 @@ func main() {
 		}
 
 		// Get tDelta
-		tDeltaNew := float64(time.Now().Sub(lastFrame).Seconds())
-		if int(1/tDeltaNew) >= 0 { // Prevent overflow
-			tDelta = tDeltaNew
+		tDelta = float64(time.Now().Sub(lastFrame).Seconds())
+		if tDelta > 0 {
+			lblFps.SetText(fmt.Sprintf("FPS: %d", int(1/tDelta)))
 		}
-		lblFps.SetText(fmt.Sprintf("FPS: %d", int(1/tDelta)))
 		lastFrame = time.Now()
 
 		// Update user mouse information
@@ -287,7 +290,6 @@ func main() {
 					},
 				})
 			if selected != "" {
-				log.Print(selected)
 				LoadFile(selected)
 				continue
 			}
@@ -492,16 +494,6 @@ func main() {
 		lblResolution8.Draw(surface)
 		btnResolution16.Draw(surface)
 		lblResolution16.Draw(surface)
-
-		//lblResolution1.Draw(surface)
-		//btnResolution2.Draw(surface)
-		//lblResolution2.Draw(surface)
-		//btnResolution4.Draw(surface)
-		//lblResolution4.Draw(surface)
-		//btnResolution8.Draw(surface)
-		//lblResolution8.Draw(surface)
-		//btnResolution16.Draw(surface)
-		//lblResolution16.Draw(surface)
 
 		// Update and clean screen buffers
 		window.UpdateSurface()

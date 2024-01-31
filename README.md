@@ -1,4 +1,4 @@
-[<h1 align="center">3d-viewer</h1>
+<h1 align="center">3d-viewer</h1>
 
 <p align="center">
   <a href="./LICENSE"><img src="https://img.shields.io/badge/⚖️ license-MIT-blue" alt="MIT License"></a>

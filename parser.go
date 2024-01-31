@@ -1,12 +1,15 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"math"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/ncruces/zenity"
 )
 
 func parseVector(parts []string) Vector4 {
@@ -39,8 +42,8 @@ func ParseObj(filename string) *Mesh {
 	bytes, err := os.ReadFile(filename)
 
 	if err != nil {
-		log.Fatalf("Error loading the obj file '%s'", filename)
-		return &Mesh{}
+		zenity.Error(fmt.Sprintf("Error loading the obj file.\n%s", err), zenity.Title("OBJ load error"), zenity.ErrorIcon)
+		panic(err)
 	}
 
 	// Load .mtl and create a dictionary of: materialName - textureImage
@@ -86,8 +89,8 @@ func GetTexVerts(bytes []byte) []TexVector {
 			for i := 1; i < 3; i++ {
 				num, err := strconv.ParseFloat(parts[i], 32)
 				if err != nil {
-					log.Fatalf("Error parsing the texture vertice float '%s'", parts[1])
-					return texVerts
+					zenity.Error(fmt.Sprintf("Error while parsing a texture vertice.\n%s", err), zenity.Title("Texture parsing error"), zenity.ErrorIcon)
+					panic(err)
 				}
 
 				num32 := float64(num)
@@ -174,8 +177,8 @@ func GetMtlTex(bytes []byte, objFilename string) map[string]*Texture {
 		bytes, err := os.ReadFile(filepath.Join(basePath, filename))
 
 		if err != nil {
-			log.Fatalf("Error loading the mtl file '%s'", filename)
-			return mtlTexDict
+			zenity.Error(fmt.Sprintf("Error loading the .mtl file '%s'.\n%s", filename, err), zenity.Title("Material load error"), zenity.ErrorIcon)
+			panic(err)
 		}
 
 		var mtlKey string
@@ -223,8 +226,11 @@ func GetTriangles(bytes []byte, mtlTex map[string]*Texture, vertices []Vector4, 
 			triangle := Triangle{}
 
 			for i := 1; i < 4; i++ {
+				isTextured := true
+
 				vParts := strings.Split(parts[i], "/")
 				vIndexString := strings.Split(parts[i], "/")[0]
+
 				var vTexIndexString string
 				if len(vParts) == 2 {
 					vTexIndexString = strings.Split(parts[i], "/")[1]
@@ -232,18 +238,30 @@ func GetTriangles(bytes []byte, mtlTex map[string]*Texture, vertices []Vector4, 
 					vTexIndexString = strings.Split(parts[i], "/")[1]
 				}
 
+				if vTexIndexString == "" {
+					isTextured = false
+				}
+
 				vIndex, err := strconv.Atoi(vIndexString)
 				if err != nil {
-					log.Fatalf("Error parsing the vertice index integer '%s'", parts[i])
+					zenity.Error(fmt.Sprintf("Error parsing a vertice.\n%s", err), zenity.Title("Mesh parsing error"), zenity.ErrorIcon)
+					panic(err)
 				}
-				vTexIndex, err := strconv.Atoi(vTexIndexString)
-				if err != nil {
-					log.Fatalf("Error parsing the vertice index integer '%s'", parts[i])
+
+				vTexIndex := 0
+				if isTextured {
+					vTexIndex, err = strconv.Atoi(vTexIndexString)
+					if err != nil {
+						zenity.Error(fmt.Sprintf("Error parsing a vertice.\n%s", err), zenity.Title("Mesh parsing error"), zenity.ErrorIcon)
+						panic(err)
+					}
 				}
 
 				triangle.tex = lastTexture
 				triangle.vecs[i-1] = vertices[vIndex-1]
-				triangle.vecs[i-1].texVec = texVertices[vTexIndex-1]
+				if isTextured {
+					triangle.vecs[i-1].texVec = texVertices[vTexIndex-1]
+				}
 			}
 
 			tris = append(tris, triangle)

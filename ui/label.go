@@ -1,8 +1,9 @@
 package ui
 
 import (
-	"log"
+	"fmt"
 
+	"github.com/ncruces/zenity"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
 )
@@ -41,7 +42,8 @@ func NewLabel(x, y int32, text string, margin Margin, anchor Anchor, textColor s
 func (lbl *Label) updateRender() {
 	rendered, err := lbl.font.RenderUTF8Blended(lbl.textValue, lbl.textColor)
 	if err != nil {
-		log.Fatalf("Error rendering text")
+		zenity.Error(fmt.Sprintf("Error rendering text.\n%s", err), zenity.Title("UI error"), zenity.ErrorIcon)
+		panic(err)
 	}
 
 	lbl.rendered = rendered
@@ -55,7 +57,8 @@ func (lbl *Label) SetText(text string) {
 
 func (lbl Label) Draw(surface *sdl.Surface) {
 	if err := lbl.rendered.Blit(nil, surface, lbl.rect); err != nil {
-		log.Fatalf("Error rendering a label.")
+		zenity.Error(fmt.Sprintf("Error rendering a label.\n%s", err), zenity.Title("UI error"), zenity.ErrorIcon)
+		panic(err)
 	}
 }
 

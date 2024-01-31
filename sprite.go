@@ -9,6 +9,8 @@ import (
 	"os"
 
 	"math"
+
+	"github.com/ncruces/zenity"
 )
 
 type Texture struct {
@@ -32,8 +34,8 @@ func LoadTexture(filename string) *Texture {
 	file, err := os.Open(filename)
 
 	if err != nil {
-		fmt.Println("Error: File could not be opened")
-		os.Exit(1)
+		zenity.Error(fmt.Sprintf("Error loading the texture '%s'.\n%s", filename, err), zenity.Title("Texture load error"), zenity.ErrorIcon)
+		panic(err)
 	}
 
 	defer file.Close()
@@ -43,6 +45,7 @@ func LoadTexture(filename string) *Texture {
 	img, _, err := image.Decode(file)
 
 	if err != nil {
+		zenity.Error(fmt.Sprintf("Error decoding the texture image.\n%s", err), zenity.Title("Texture load error"), zenity.ErrorIcon)
 		panic(err)
 	}
 
