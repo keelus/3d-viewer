@@ -4,7 +4,7 @@ import (
 	"log"
 	"math"
 	"os"
-	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -154,7 +154,7 @@ func GetVerts(bytes []byte) ([]Vector4, [3]float64, [3]float64) {
 var lastTexture *Texture
 
 func GetMtlTex(bytes []byte, objFilename string) map[string]*Texture {
-	basePath := path.Dir(objFilename)
+	basePath := filepath.Dir(objFilename)
 	filename := ""
 	for _, line := range strings.Split(string(bytes), "\n") {
 		cleanLine := strings.TrimSpace(line)
@@ -171,7 +171,7 @@ func GetMtlTex(bytes []byte, objFilename string) map[string]*Texture {
 	}
 	mtlTexDict := make(map[string]*Texture)
 	if filename != "" {
-		bytes, err := os.ReadFile(path.Join(basePath, filename))
+		bytes, err := os.ReadFile(filepath.Join(basePath, filename))
 
 		if err != nil {
 			log.Fatalf("Error loading the mtl file '%s'", filename)
@@ -196,7 +196,7 @@ func GetMtlTex(bytes []byte, objFilename string) map[string]*Texture {
 				strings.Contains(cleanLine, ".jif") {
 				prefix := strings.Fields(cleanLine)[0] + " " // Trim the texture prefix (e.g 'map_Ka')
 				texFileName := strings.Replace(cleanLine, prefix, "", 1)
-				texFilePath := path.Join(basePath, texFileName)
+				texFilePath := filepath.Join(basePath, texFileName)
 				mtlTexDict[mtlKey] = LoadTexture(texFilePath)
 			}
 

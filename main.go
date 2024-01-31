@@ -4,7 +4,7 @@ import (
 	"3d-viewer/ui"
 	"fmt"
 	"log"
-	"path"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -284,6 +284,7 @@ func main() {
 					},
 				})
 			if selected != "" {
+				log.Print(selected)
 				LoadFile(selected)
 				continue
 			}
@@ -516,12 +517,12 @@ func main() {
 
 }
 
-func LoadFile(filepath string) {
-	modelMesh = ParseObj(filepath)
+func LoadFile(modelFilePath string) {
+	modelMesh = ParseObj(modelFilePath)
 
 	ResetCameraView()
 
-	filename := path.Base(filepath)
+	filename := filepath.Base(modelFilePath)
 
 	lblFileInfoName.SetText(filename)
 	lblFileInfoTriangles.SetText(fmt.Sprintf("Triangles: %d", modelMesh.triangleAmount))
