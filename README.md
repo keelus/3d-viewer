@@ -18,7 +18,8 @@ I made it from scratch to learn 3D rendering concepts, mathematics and algorithm
 - Support for .obj 3D files and .mtl material files (with PNG and JPEG texture formats).
 
 ## 🐛 Known errors
-In very specific cases where the Z position of the camera is exactly 0, and rotation is default, some triangles might not be displayed correctly. This can be corrected by just moving or rotating the camera by a few pixels.
+- In very specific cases where the Z position of the camera is exactly 0, and rotation is default, some triangles might not be displayed correctly. This can be corrected by just moving or rotating the camera by a few pixels.
+- Selecting a .obj file from the file prompt could crash the application in Windows operating systems.
 
 ## 📸 Screenshots
 <p align="center">
