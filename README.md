@@ -57,7 +57,7 @@ To compile the app, just run:
 go mod tidy
 ```
 ```bash
-go build -o 3d_viewer.exe
+go build -o 3d_viewer.exe -ldflags "-s -w -H windowsgui"
 ```
 ### 🐧 Linux or macOS
 To compile the app, just run:
@@ -65,7 +65,7 @@ To compile the app, just run:
 go mod tidy
 ```
 ```bash
-go build -o 3d_viewer
+go build -o 3d_viewer -ldflags "-s -w"
 ```
 
 ## 📰 References
