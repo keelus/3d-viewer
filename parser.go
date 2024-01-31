@@ -44,7 +44,7 @@ func ParseObj(filename string) *Mesh {
 	}
 
 	// Load .mtl and create a dictionary of: materialName - textureImage
-	mtlTex := GetMtlTex(filename)
+	mtlTex := GetMtlTex(bytes, filename)
 
 	// Get the texture vertices
 	texVertices := GetTexVerts(bytes)
@@ -153,15 +153,28 @@ func GetVerts(bytes []byte) ([]Vector4, [3]float64, [3]float64) {
 
 var lastTexture *Texture
 
-func GetMtlTex(filename string) map[string]*Texture {
+func GetMtlTex(bytes []byte, objFilename string) map[string]*Texture {
+	basePath := path.Dir(objFilename)
+	filename := ""
+	for _, line := range strings.Split(string(bytes), "\n") {
+		cleanLine := strings.TrimSpace(line)
+		if cleanLine == "" {
+			continue
+		}
+
+		parts := strings.Fields(cleanLine)
+
+		if parts[0] == "mtllib" {
+			filename = strings.Replace(cleanLine, "mtllib ", "", 1)
+			break
+		}
+	}
 	mtlTexDict := make(map[string]*Texture)
-	if strings.HasSuffix(filename, ".obj") {
-		basePath := path.Dir(filename)
-		newFilename := strings.Replace(filename, ".obj", ".mtl", 1)
-		bytes, err := os.ReadFile(newFilename)
+	if filename != "" {
+		bytes, err := os.ReadFile(path.Join(basePath, filename))
 
 		if err != nil {
-			log.Fatalf("Error loading the obj file '%s'", filename)
+			log.Fatalf("Error loading the mtl file '%s'", filename)
 			return mtlTexDict
 		}
 
@@ -177,9 +190,14 @@ func GetMtlTex(filename string) map[string]*Texture {
 				mtlKey = strings.Fields(cleanLine)[1]
 			}
 
-			if strings.Contains(cleanLine, ".png") {
-				texFilename := path.Join(basePath, strings.Fields(cleanLine)[1])
-				mtlTexDict[mtlKey] = LoadTexture(texFilename)
+			if strings.Contains(cleanLine, ".png") ||
+				strings.Contains(cleanLine, ".jpg") ||
+				strings.Contains(cleanLine, ".jpeg") ||
+				strings.Contains(cleanLine, ".jif") {
+				prefix := strings.Fields(cleanLine)[0] + " " // Trim the texture prefix (e.g 'map_Ka')
+				texFileName := strings.Replace(cleanLine, prefix, "", 1)
+				texFilePath := path.Join(basePath, texFileName)
+				mtlTexDict[mtlKey] = LoadTexture(texFilePath)
 			}
 
 		}

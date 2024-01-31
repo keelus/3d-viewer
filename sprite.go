@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/jpeg"
 	"image/png"
 	"os"
 
@@ -26,6 +27,7 @@ func (t *Texture) GetColorAt(u, v float64) color.RGBA {
 
 func LoadTexture(filename string) *Texture {
 	image.RegisterFormat("png", "png", png.Decode, png.DecodeConfig)
+	image.RegisterFormat("jpeg", "jpg", jpeg.Decode, jpeg.DecodeConfig)
 
 	file, err := os.Open(filename)
 
