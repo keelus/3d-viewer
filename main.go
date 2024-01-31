@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"go-3d-viewer/ui"
+	"log"
 	"path"
 	"sync"
 	"time"
@@ -15,18 +16,8 @@ import (
 )
 
 const (
-	SCALE_FACTOR  int = 2 // To scale down the render resolution. For 1280x720, can be: x1, x2, x4, x8, x16
 	SCREEN_WIDTH  int = 1280
 	SCREEN_HEIGHT int = 720
-
-	RENDER_WIDTH  int = SCREEN_WIDTH / (SCALE_FACTOR)
-	RENDER_HEIGHT int = SCREEN_HEIGHT / (SCALE_FACTOR)
-
-	RENDER_WIDTH_FLOAT  float64 = float64(RENDER_WIDTH)
-	RENDER_HEIGHT_FLOAT float64 = float64(RENDER_HEIGHT)
-
-	RENDER_WIDTH_HALF  float64 = RENDER_WIDTH_FLOAT * 0.5
-	RENDER_HEIGHT_HALF float64 = RENDER_HEIGHT_FLOAT * 0.5
 
 	ASPECT_RATIO float64 = float64(SCREEN_HEIGHT) / float64(SCREEN_WIDTH)
 
@@ -42,6 +33,13 @@ const (
 	POSITION_SPEED float64 = 10
 
 	BG_COLOR uint32 = 0xff202020 // 0xAABBGGRR
+)
+
+var (
+	SCALE_FACTOR                            int // To scale down the render resolution. For 1280x720, can be: x1, x2, x4, x8, x16
+	RENDER_WIDTH, RENDER_HEIGHT             int
+	RENDER_WIDTH_FLOAT, RENDER_HEIGHT_FLOAT float64
+	RENDER_WIDTH_HALF, RENDER_HEIGHT_HALF   float64
 )
 
 var (
@@ -94,6 +92,19 @@ var (
 	btnVisualToolsResetView   ui.Button
 	lblVisualToolsResetView   ui.Label
 
+	cbResolution       ui.ContentBlock
+	lblResolutionTitle ui.Label
+	btnResolution1     ui.Button
+	lblResolution1     ui.Label
+	btnResolution2     ui.Button
+	lblResolution2     ui.Label
+	btnResolution4     ui.Button
+	lblResolution4     ui.Label
+	btnResolution8     ui.Button
+	lblResolution8     ui.Label
+	btnResolution16    ui.Button
+	lblResolution16    ui.Label
+
 	lblNoMeshLoaded ui.Label
 )
 
@@ -116,15 +127,7 @@ func main() {
 		panic(err)
 	}
 
-	if SCALE_FACTOR > 1 {
-		renderBuffer = make([]byte, RENDER_WIDTH*RENDER_HEIGHT*4)
-		screenBuffer = surface.Pixels()
-	} else {
-		renderBuffer = surface.Pixels()
-	}
-
-	depthBuffer = make([]float64, RENDER_WIDTH*RENDER_HEIGHT)
-	depthBufferLength = len(depthBuffer)
+	setScale(1)
 
 	// Load TTF module and load fonts
 	if err = ttf.Init(); err != nil {
@@ -161,6 +164,20 @@ func main() {
 	lblVisualToolsResetView = ui.NewLabel(1280-110/2, int32(SCREEN_HEIGHT)-30-2, "Reset view", ui.NewMargin(20, 10), ui.CENTER_CENTER, sdl.Color{R: 0, G: 0, B: 0, A: 255}, fontSmall)
 
 	lblNoMeshLoaded = ui.NewLabel(int32(SCREEN_WIDTH)/2, int32(SCREEN_HEIGHT)/2, "Load a 3D file to preview it (.obj supported)", ui.NewMargin(0, 0), ui.CENTER_CENTER, sdl.Color{R: 127, G: 127, B: 127, A: 255}, fontBig)
+
+	cbResolution = ui.NewContentBlock(0, int32(SCREEN_HEIGHT), 140, 50, ui.NewMargin(10, 10), ui.NewPadding(10, 10), ui.BOTTOM_LEFT, 0x001a1a1a)
+	lblResolutionTitle = ui.NewLabel(100, int32(SCREEN_HEIGHT)-45, "Resolution", ui.NewMargin(20, 10), ui.BOTTOM_CENTER, sdl.Color{R: 255, G: 255, B: 255, A: 255}, fontSmall)
+
+	btnResolution1 = ui.NewButton(50, int32(SCREEN_HEIGHT)-35, 25, 25, ui.NewMargin(20, 10), ui.CENTER_CENTER, 0xffffffff, 0xdddddddd, 0xbbbbbbbb)
+	lblResolution1 = ui.NewLabel(100/2, int32(SCREEN_HEIGHT)-32, "x1", ui.NewMargin(20, 10), ui.CENTER_CENTER, sdl.Color{R: 0, G: 0, B: 0, A: 255}, fontSmall)
+	btnResolution2 = ui.NewButton(80, int32(SCREEN_HEIGHT)-35, 25, 25, ui.NewMargin(20, 10), ui.CENTER_CENTER, 0xffffffff, 0xdddddddd, 0xbbbbbbbb)
+	lblResolution2 = ui.NewLabel(100/2+30, int32(SCREEN_HEIGHT)-32, "/2", ui.NewMargin(20, 10), ui.CENTER_CENTER, sdl.Color{R: 0, G: 0, B: 0, A: 255}, fontSmall)
+	btnResolution4 = ui.NewButton(110, int32(SCREEN_HEIGHT)-35, 25, 25, ui.NewMargin(20, 10), ui.CENTER_CENTER, 0xffffffff, 0xdddddddd, 0xbbbbbbbb)
+	lblResolution4 = ui.NewLabel(100/2+60, int32(SCREEN_HEIGHT)-32, "/4", ui.NewMargin(20, 10), ui.CENTER_CENTER, sdl.Color{R: 0, G: 0, B: 0, A: 255}, fontSmall)
+	btnResolution8 = ui.NewButton(140, int32(SCREEN_HEIGHT)-35, 25, 25, ui.NewMargin(20, 10), ui.CENTER_CENTER, 0xffffffff, 0xdddddddd, 0xbbbbbbbb)
+	lblResolution8 = ui.NewLabel(100/2+90, int32(SCREEN_HEIGHT)-32, "/8", ui.NewMargin(20, 10), ui.CENTER_CENTER, sdl.Color{R: 0, G: 0, B: 0, A: 255}, fontSmall)
+	btnResolution16 = ui.NewButton(170, int32(SCREEN_HEIGHT)-35, 25, 25, ui.NewMargin(20, 10), ui.CENTER_CENTER, 0xffffffff, 0xdddddddd, 0xbbbbbbbb)
+	lblResolution16 = ui.NewLabel(100/2+120, int32(SCREEN_HEIGHT)-32, "/16", ui.NewMargin(20, 10), ui.CENTER_CENTER, sdl.Color{R: 0, G: 0, B: 0, A: 255}, fontSmall)
 
 	// Initialize 3D and misc things
 	camera := Vector4{0, 0, 0, 1, -1, NewTexVector(0, 0, 0)}
@@ -278,6 +295,22 @@ func main() {
 
 		if pressed := btnVisualToolsResetView.UpdateAndGetStatus(curX, curY, MOUSE_CLICK); pressed {
 			ResetCameraView()
+		}
+
+		if pressed := btnResolution1.UpdateAndGetStatus(curX, curY, MOUSE_CLICK); pressed {
+			setScale(1)
+		}
+		if pressed := btnResolution2.UpdateAndGetStatus(curX, curY, MOUSE_CLICK); pressed {
+			setScale(2)
+		}
+		if pressed := btnResolution4.UpdateAndGetStatus(curX, curY, MOUSE_CLICK); pressed {
+			setScale(4)
+		}
+		if pressed := btnResolution8.UpdateAndGetStatus(curX, curY, MOUSE_CLICK); pressed {
+			setScale(8)
+		}
+		if pressed := btnResolution16.UpdateAndGetStatus(curX, curY, MOUSE_CLICK); pressed {
+			setScale(16)
 		}
 
 		// Main 3D code
@@ -443,6 +476,29 @@ func main() {
 		lblVisualToolsFlipNormals.Draw(surface)
 		lblVisualToolsResetView.Draw(surface)
 
+		cbResolution.Draw(surface)
+		lblResolutionTitle.Draw(surface)
+		btnResolution1.Draw(surface)
+		lblResolution1.Draw(surface)
+		btnResolution2.Draw(surface)
+		lblResolution2.Draw(surface)
+		btnResolution4.Draw(surface)
+		lblResolution4.Draw(surface)
+		btnResolution8.Draw(surface)
+		lblResolution8.Draw(surface)
+		btnResolution16.Draw(surface)
+		lblResolution16.Draw(surface)
+
+		//lblResolution1.Draw(surface)
+		//btnResolution2.Draw(surface)
+		//lblResolution2.Draw(surface)
+		//btnResolution4.Draw(surface)
+		//lblResolution4.Draw(surface)
+		//btnResolution8.Draw(surface)
+		//lblResolution8.Draw(surface)
+		//btnResolution16.Draw(surface)
+		//lblResolution16.Draw(surface)
+
 		// Update and clean screen buffers
 		window.UpdateSurface()
 
@@ -484,4 +540,31 @@ func ResetCameraView() {
 		positionOffset.z = -modelMesh.lowestZ * 3
 		positionOffset.y = -(modelMesh.lowestY + modelMesh.highestY) / 2
 	}
+}
+
+func setScale(scale int) {
+	if scale != 1 && scale != 2 && scale != 4 && scale != 8 && scale != 16 {
+		log.Fatalf("Unexpected resolution scale '%d'", scale)
+	}
+
+	SCALE_FACTOR = scale
+
+	RENDER_WIDTH = SCREEN_WIDTH / SCALE_FACTOR
+	RENDER_HEIGHT = SCREEN_HEIGHT / SCALE_FACTOR
+
+	RENDER_WIDTH_FLOAT = float64(RENDER_WIDTH)
+	RENDER_HEIGHT_FLOAT = float64(RENDER_HEIGHT)
+
+	RENDER_WIDTH_HALF = RENDER_WIDTH_FLOAT * 0.5
+	RENDER_HEIGHT_HALF = RENDER_HEIGHT_FLOAT * 0.5
+
+	if SCALE_FACTOR > 1 {
+		renderBuffer = make([]byte, RENDER_WIDTH*RENDER_HEIGHT*4)
+		screenBuffer = surface.Pixels()
+	} else {
+		renderBuffer = surface.Pixels()
+	}
+
+	depthBuffer = make([]float64, RENDER_WIDTH*RENDER_HEIGHT)
+	depthBufferLength = len(depthBuffer)
 }

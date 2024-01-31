@@ -26,7 +26,7 @@ func GetFinalRect(x, y, w, h int32, margin Margin, padding Padding, anchor Ancho
 	case CENTER_CENTER:
 		fx, fy = x-w/2-padding.x-margin.x, y-h/h-padding.y-margin.y
 	case BOTTOM_LEFT:
-		fx, fy = x+margin.x*2, y-h-padding.y*2-margin.y
+		fx, fy = x+margin.x, y-h-padding.y*2-margin.y
 	case BOTTOM_RIGHT:
 		fx, fy = x-w-padding.x*2-margin.x, y-h-padding.y*2-margin.y
 	case BOTTOM_CENTER:
