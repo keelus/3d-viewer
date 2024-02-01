@@ -19,7 +19,7 @@ I made it from scratch to learn 3D rendering concepts, mathematics and algorithm
 
 ## 🐛 Known errors
 - In very specific cases where the Z position of the camera is exactly 0, and rotation is default, some triangles might not be displayed correctly. This can be corrected by just moving or rotating the camera by a few pixels.
-- In strange cases, when loading a 3D model, SDL2 could fail to render the mesh text information (unknown cause).
+- May occasionally fail to update the text information of the new loaded mesh due to some strange SDL2_ttf error while rendering the text.
 
 ## 📸 Screenshots
 <p align="center">
