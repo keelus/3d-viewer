@@ -116,7 +116,7 @@ func main() {
 	}
 	defer sdl.Quit()
 
-	window, err := sdl.CreateWindow("3D viewer", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, int32(SCREEN_WIDTH), int32(SCREEN_HEIGHT), sdl.WINDOW_SHOWN)
+	window, err := sdl.CreateWindow("3D OBJ viewer - by keelus", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, int32(SCREEN_WIDTH), int32(SCREEN_HEIGHT), sdl.WINDOW_SHOWN)
 	if err != nil {
 		zenity.Error(fmt.Sprintf("Error creating the SDL2 window.\n%s", err), zenity.Title("SDL2 error"), zenity.ErrorIcon)
 		panic(err)
