@@ -42,8 +42,7 @@ func NewLabel(x, y int32, text string, margin Margin, anchor Anchor, textColor s
 func (lbl *Label) updateRender() {
 	rendered, err := lbl.font.RenderUTF8Blended(lbl.textValue, lbl.textColor)
 	if err != nil {
-		zenity.Error(fmt.Sprintf("Error rendering text.\n%s", err), zenity.Title("UI error"), zenity.ErrorIcon)
-		panic(err)
+		return
 	}
 
 	lbl.rendered = rendered

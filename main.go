@@ -519,13 +519,10 @@ func LoadFile(modelFilePath string) {
 
 	filename := filepath.Base(modelFilePath)
 
+	// This may not work properly (strange bug happening when rendering text after loading a 3D mesh...)
 	lblFileInfoName.SetText(filename)
 	lblFileInfoTriangles.SetText(fmt.Sprintf("Triangles: %d", modelMesh.triangleAmount))
 	lblFileInfoVertices.SetText(fmt.Sprintf("Vertices: %d", modelMesh.vertexAmount))
-
-	width := math.Max(math.Max(float64(lblFileInfoName.GetRectWidth()), float64(lblFileInfoTriangles.GetRectWidth())), float64(lblFileInfoVertices.GetRectWidth()))
-
-	cbFileInfo.UpdateRectToWidth(int32(width))
 }
 
 func ResetCameraView() {
