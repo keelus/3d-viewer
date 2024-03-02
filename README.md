@@ -70,8 +70,6 @@ go mod tidy
 go build -o 3d_viewer -ldflags "-s -w"
 ```
 
-## 📰 References
-
 ## ⚠️ Disclaimer
 The 3D models that are shown in the screenshots are for demonstration purposes only, I don't own the models.
 
